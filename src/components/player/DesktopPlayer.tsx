@@ -49,6 +49,7 @@ export function DesktopPlayer() {
 
   const isStreamUnavailable = playbackStatus === 'unavailable';
   const isActualPlaying = isPlaying && playbackStatus === 'playing';
+  const isRightPanelOpen = Boolean(rightPanelMode);
 
   const toggleLyricsPanel = () =>
     rightPanelMode === 'lyrics' ? closeRightPanel() : setRightPanelMode('lyrics');
@@ -58,11 +59,14 @@ export function DesktopPlayer() {
   return (
     <footer
       aria-label="Audio Player"
-      className="hidden md:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-32px)] max-w-[820px] xl:max-w-[860px] select-none pointer-events-none animate-player-enter"
+      style={{
+        right: isRightPanelOpen ? '340px' : '0px',
+      }}
+      className="hidden md:flex fixed bottom-5 left-0 z-40 justify-center pointer-events-none transition-[right] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] px-4 select-none animate-player-enter"
     >
       {/* Compact Floating GULLYGANG Player Shell */}
       <div
-        className="pointer-events-auto relative w-full h-[62px] rounded-[24px] bg-[#101012]/96 backdrop-blur-2xl border border-white/[0.09] px-3.5 sm:px-4 flex items-center justify-between gap-3 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.8)] transition-all duration-300"
+        className="pointer-events-auto relative w-full max-w-[820px] xl:max-w-[860px] h-[62px] rounded-[24px] bg-[#101012]/96 backdrop-blur-2xl border border-white/[0.09] px-3.5 sm:px-4 flex items-center justify-between gap-3 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.8)] transition-all duration-300"
       >
         {/* Subtle dynamic artwork ambient glow */}
         <div

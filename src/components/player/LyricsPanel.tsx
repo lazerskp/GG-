@@ -28,9 +28,16 @@ export function LyricsPanel() {
       {/* Content area */}
       <div className="flex-1 min-h-0">
         {isLoading && (
-          <div className="h-full flex flex-col justify-center px-8 space-y-4 animate-pulse select-none">
-            {[70, 90, 55, 80, 40, 65].map((w, i) => (
-              <div key={i} className="h-4 rounded-full bg-white/[0.05]" style={{ width: `${w}%` }} />
+          <div
+            aria-label="Loading lyrics"
+            className="h-full flex flex-col justify-center px-6 sm:px-8 space-y-4 animate-pulse select-none"
+          >
+            {[75, 90, 60, 85, 45, 80, 65, 50].map((w, i) => (
+              <div
+                key={i}
+                className="h-5 sm:h-6 rounded-md bg-gradient-to-r from-white/[0.08] via-white/[0.04] to-white/[0.02]"
+                style={{ width: `${w}%` }}
+              />
             ))}
           </div>
         )}
@@ -48,9 +55,12 @@ export function LyricsPanel() {
             )}
 
             {lyrics.status === 'plain' && lyrics.text && (
-              <div className="h-full overflow-y-auto px-6 py-8 space-y-1">
+              <div className="h-full overflow-y-auto px-6 py-8 space-y-2.5 no-scrollbar">
                 {lyrics.text.map((line, idx) => (
-                  <p key={idx} className="text-base text-[#D4D4D4] leading-relaxed">
+                  <p
+                    key={idx}
+                    className="text-lg sm:text-xl font-bold text-[#E5E5E5] leading-relaxed tracking-tight"
+                  >
                     {line || '\u00A0'}
                   </p>
                 ))}

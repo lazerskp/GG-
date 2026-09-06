@@ -30,17 +30,14 @@ const FullscreenPlayer = dynamic(
   () => import('./FullscreenPlayer').then((m) => ({ default: m.FullscreenPlayer })),
   { ssr: false, loading: () => null }
 );
-const PlayerRightPanel = dynamic(
-  () => import('./PlayerRightPanel').then((m) => ({ default: m.PlayerRightPanel })),
-  { ssr: false, loading: () => null }
-);
+import { PlayerRightPanel } from './PlayerRightPanel';
+import { prefetchLyrics } from '@/hooks/useLyrics';
 
 export function PersistentPlayer() {
   const {
     currentTrack,
     isFullscreenOpen,
     isMobileFullscreenOpen,
-    rightPanelMode,
     setReady,
     setPlaybackStatus,
     updatePlaybackProgress,
@@ -109,6 +106,13 @@ export function PersistentPlayer() {
     };
   }, [setReady, setPlaybackStatus, updatePlaybackProgress, nextTrack]);
 
+  // Prefetch lyrics in the background for the active track
+  useEffect(() => {
+    if (currentTrack) {
+      prefetchLyrics(currentTrack);
+    }
+  }, [currentTrack]);
+
   return (
     <>
       {/* Non-intrusive compliant YouTube Embedded IFrame Player Container */}
@@ -137,8 +141,8 @@ export function PersistentPlayer() {
           <MiniPlayer />
           {isMobileFullscreenOpen && <FullscreenMobilePlayer />}
           {isFullscreenOpen && <FullscreenPlayer />}
-          {/* Unified right-side panel (Lyrics / Queue) — mounted on demand */}
-          {Boolean(rightPanelMode) && <PlayerRightPanel />}
+          {/* Unified right-side panel (Lyrics / Queue) — instant slide-in */}
+          <PlayerRightPanel />
         </>
       )}
     </>

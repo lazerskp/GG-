@@ -17,9 +17,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area with fluid shift when right sheet is active */}
       <main
-        className={`flex-1 pb-36 sm:pb-36 md:pb-36 lg:pb-40 overflow-x-hidden transition-[padding] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          isRightPanelOpen ? 'xl:pr-[440px] 2xl:pr-[480px]' : ''
-        }`}
+        style={{
+          paddingRight: isRightPanelOpen ? '340px' : undefined,
+        }}
+        className="flex-1 pb-36 sm:pb-36 md:pb-36 lg:pb-40 overflow-x-hidden transition-[padding] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
       >
         <div className="w-full max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-4 sm:py-6">
           {children}

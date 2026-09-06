@@ -36,26 +36,37 @@ class ProductionMusicService implements IMusicService {
     if (typeof window === 'undefined') {
       try {
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        const rawArtists = await insforgeRepo.getArtists('india');
+        let rawArtists = await insforgeRepo.getArtists('india');
+        if (!rawArtists || rawArtists.length === 0) {
+          rawArtists = await insforgeRepo.getArtists();
+        }
         const artists = deduplicateArtists(rawArtists);
         if (artists.length > 0) {
-          // Find prominent artist (prefer DIVINE, Seedhe Maut, KR$NA, Hanumankind)
-          const preferredSlugs = ['divine', 'seedhe-maut', 'kr-na', 'hanumankind'];
+          // Find prominent artist (prefer KR$NA, DIVINE, Seedhe Maut, Hanumankind)
+          const preferredSlugs = ['kr-na', 'krsna', 'divine', 'seedhe-maut', 'hanumankind'];
           const heroArtist =
-            artists.find((a) => preferredSlugs.includes(a.id.toLowerCase())) || artists[0];
+            artists.find(
+              (a) =>
+                preferredSlugs.includes(a.id.toLowerCase()) ||
+                preferredSlugs.some((slug) => a.name.toLowerCase().includes(slug))
+            ) || artists[0];
 
-          const songs = await insforgeRepo.getSongs({ artist_id: heroArtist.id });
+          let songs = await insforgeRepo.getSongs({ artist_id: heroArtist.id });
+          if (!songs || songs.length === 0) {
+            songs = await insforgeRepo.getSongs();
+          }
+
           const heroSong =
-            songs.length > 0
+            songs && songs.length > 0
               ? songs[0]
               : {
-                  id: `song-${heroArtist.id}`,
-                  title: `${heroArtist.name} Spotlight`,
+                  id: 'fSwe7XoAi2g',
+                  title: 'Makasam',
                   artist: heroArtist.name,
                   artistId: heroArtist.id,
-                  artworkUrl: heroArtist.imageUrl,
-                  duration: 210,
-                  releaseYear: 0,
+                  artworkUrl: heroArtist.imageUrl || 'https://i.ytimg.com/vi/fSwe7XoAi2g/maxresdefault.jpg',
+                  duration: 236,
+                  releaseYear: 2020,
                   region: 'india' as const,
                   genre: heroArtist.genres[0] || 'Desi Hip-Hop',
                 };

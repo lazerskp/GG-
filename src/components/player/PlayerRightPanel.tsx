@@ -1,25 +1,17 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { X } from 'lucide-react';
 import { AppleLyricsIcon, AppleQueueIcon } from '@/components/icons/ApplePlayerIcons';
 import { usePlayerStore } from '@/store/usePlayerStore';
-
-const LyricsPanel = dynamic(
-  () => import('./LyricsPanel').then((m) => ({ default: m.LyricsPanel })),
-  { ssr: false, loading: () => null }
-);
-const QueuePanel = dynamic(
-  () => import('./QueuePanel').then((m) => ({ default: m.QueuePanel })),
-  { ssr: false, loading: () => null }
-);
+import { LyricsPanel } from './LyricsPanel';
+import { QueuePanel } from './QueuePanel';
 
 /**
  * Unified right-side player panel.
  *
- * - Desktop: slides in from the right as a glass drawer.
- * - Mobile: slides up as a premium sheet above the mini player.
+ * - Desktop: slides in from the right as a glass drawer (340px).
+ * - Mobile: slides up as a full-height sheet above the mini player.
  * - Lyrics and Queue share this single panel and animate between contents.
  * - Playback is never interrupted (the global YouTube player keeps running).
  * - Closes with X or Escape.
@@ -44,24 +36,24 @@ export function PlayerRightPanel() {
 
   return (
     <>
-      {/* Scrim — mobile only (desktop panel smoothly shifts page content) */}
+      {/* Scrim — mobile only (desktop panel smoothly shifts page content and player) */}
       <div
         onClick={closeRightPanel}
-        className={`md:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-40 transition-opacity duration-300 ${
+        className={`md:hidden fixed inset-0 bg-black/70 backdrop-blur-xs z-40 transition-opacity duration-300 ${
           rightPanelMode ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         aria-hidden="true"
       />
 
-      {/* Edge-Attached Full-Height Side Drawer (compact, unobtrusive) */}
+      {/* Edge-Attached Full-Height Side Drawer (340px standard on desktop) */}
       <aside
         aria-label={isLyrics ? 'Lyrics Panel' : 'Queue Panel'}
         className={`
           fixed z-50 flex flex-col
-          bg-[#0A0A0A]/95 backdrop-blur-3xl border-l border-white/[0.08]
+          bg-[#0E0E10]/98 backdrop-blur-3xl border-l border-white/[0.08]
           shadow-[-16px_0_48px_rgba(0,0,0,0.85)]
           top-0 right-0 bottom-0
-          w-full sm:w-[300px] md:w-[310px] lg:w-[320px] max-w-[330px]
+          w-full sm:w-[320px] md:w-[340px] max-w-[340px]
           transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${rightPanelMode ? 'translate-x-0' : 'translate-x-full pointer-events-none'}
         `}
