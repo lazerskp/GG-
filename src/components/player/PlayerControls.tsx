@@ -80,7 +80,7 @@ export function PlayerControls({
       {/* Play / Pause (Primary visual control) */}
       <button
         onClick={onTogglePlay}
-        disabled={isLoading || isStreamUnavailable}
+        disabled={isStreamUnavailable}
         className={`${playButtonClass} rounded-full flex items-center justify-center transition-all active:scale-95 ${
           isStreamUnavailable
             ? 'bg-white/15 text-white/60 cursor-not-allowed'

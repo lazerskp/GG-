@@ -393,7 +393,7 @@ export function FullscreenMobilePlayer() {
           {/* Play/Pause */}
           <button
             onClick={togglePlay}
-            disabled={isLoading || isStreamUnavailable}
+            disabled={isStreamUnavailable}
             className={`w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-lg ${
               isStreamUnavailable
                 ? 'bg-white/20 text-white/60 cursor-not-allowed'

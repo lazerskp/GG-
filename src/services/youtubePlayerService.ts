@@ -3,7 +3,7 @@
 /**
  * YouTube IFrame Playback Service for GULLYGANG
  * 
- * Migrated from reference GULLYGANG architecture (app.js).
+ * Migrated from reference GULLYGANG architecture.
  * Compliant YouTube embedded player API integration.
  * Strictly browser-compliant streaming without audio scraping or DRM bypass.
  */
@@ -75,7 +75,7 @@ export type PlayerEventDataMap = {
   buffering: void;
   ended: void;
   timeupdate: PlayerProgressData;
-  error: number | undefined;
+  error: { code?: number; message?: string } | undefined;
 };
 
 export type PlayerEventType = keyof PlayerEventDataMap;
@@ -96,7 +96,13 @@ class YouTubePlayerService {
   private initialVolume = 0.8;
   private initialMuted = false;
   private manualNavTimestamp = 0;
-  private apiPreloaded = false;
+
+  // Race condition & sequence tracking
+  private playbackRequestId = 0;
+  private apiPromise: Promise<void> | null = null;
+  private playerReadyPromise: Promise<YTPlayerInstance> | null = null;
+  private retryTimer: NodeJS.Timeout | null = null;
+  private retryAttempted = false;
 
   constructor() {
     (['ready', 'play', 'pause', 'buffering', 'ended', 'timeupdate', 'error'] as PlayerEventType[]).forEach(
@@ -105,29 +111,8 @@ class YouTubePlayerService {
   }
 
   /**
-   * Performance: injects ONLY the YouTube IFrame API script — no YT.Player instance
-   * is created. Intended to be called after a meaningful user interaction (never
-   * during initial page render) so the first Play press starts faster without
-   * making YouTube a blocking dependency of the initial page load.
+   * Event subscription
    */
-  public preloadApi() {
-    if (typeof window === 'undefined' || this.apiPreloaded || this.player) return;
-    if (window.YT && window.YT.Player) {
-      this.apiPreloaded = true;
-      return;
-    }
-    if (document.getElementById('gg-youtube-iframe-api')) {
-      this.apiPreloaded = true;
-      return;
-    }
-    this.apiPreloaded = true;
-    const tag = document.createElement('script');
-    tag.id = 'gg-youtube-iframe-api';
-    tag.src = 'https://www.youtube.com/iframe_api';
-    tag.async = true;
-    document.head.appendChild(tag);
-  }
-
   public on<K extends PlayerEventType>(event: K, callback: (data: PlayerEventDataMap[K]) => void): () => void {
     const set = this.listeners.get(event);
     if (set) {
@@ -153,71 +138,163 @@ class YouTubePlayerService {
     }
   }
 
+  /**
+   * Promise-based YouTube IFrame API script loader.
+   * Ensures the <script> is injected at most once and resolves reliably.
+   */
+  public loadApi(): Promise<void> {
+    if (typeof window === 'undefined') return Promise.reject(new Error('Window undefined'));
+    if (window.YT && window.YT.Player) {
+      return Promise.resolve();
+    }
+    if (this.apiPromise) {
+      return this.apiPromise;
+    }
+
+    this.apiPromise = new Promise<void>((resolve, reject) => {
+      // 10s load timeout safeguard
+      const timeoutId = setTimeout(() => {
+        reject(new Error('YouTube IFrame API script load timeout'));
+      }, 10000);
+
+      const onApiReady = () => {
+        clearTimeout(timeoutId);
+        resolve();
+      };
+
+      if (window.YT && window.YT.Player) {
+        clearTimeout(timeoutId);
+        resolve();
+        return;
+      }
+
+      const prevOnReady = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        if (typeof prevOnReady === 'function') {
+          try {
+            prevOnReady();
+          } catch {}
+        }
+        onApiReady();
+      };
+
+      const existingScript = document.getElementById('gg-youtube-iframe-api');
+      if (!existingScript) {
+        const tag = document.createElement('script');
+        tag.id = 'gg-youtube-iframe-api';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.async = true;
+        tag.onerror = () => {
+          clearTimeout(timeoutId);
+          reject(new Error('Failed to load YouTube IFrame API script'));
+        };
+        document.head.appendChild(tag);
+      }
+    });
+
+    return this.apiPromise;
+  }
+
+  /**
+   * Initializes player preferences and starts player creation if ready.
+   */
   public init(containerElementId = 'gg-yt-player', initialVolume = 0.8, isMuted = false) {
     if (typeof window === 'undefined') return;
     this.containerId = containerElementId;
     this.initialVolume = initialVolume;
     this.initialMuted = isMuted;
 
-    if (this.player) return;
-
-    if (window.YT && window.YT.Player) {
-      this.createPlayer();
-    } else {
-      // Reuse a preloaded script tag if present (see preloadApi), otherwise inject it now.
-      this.preloadApi();
-
-      const prevOnReady = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        if (prevOnReady) prevOnReady();
-        this.createPlayer();
-      };
-    }
+    if (this.player && this.isReady) return;
+    this.ensurePlayerReady().catch(() => {});
   }
 
   /**
-   * Lazy initialization guarantee: the singleton player is ONLY created when
-   * playback is actually requested (first Play press / first loadTrack call).
-   * Nothing here runs during application mount or initial page render.
+   * Ensures the singleton YT.Player instance is instantiated and reaches the onReady state.
    */
-  private ensureInitialized() {
-    if (typeof window === 'undefined') return;
-    if (this.player || this.isReady) return;
-    const { volume, isMuted } = { volume: this.initialVolume, isMuted: this.initialMuted };
-    this.init(this.containerId, volume, isMuted);
-  }
-
-  private createPlayer() {
-    if (typeof window === 'undefined' || !window.YT || !window.YT.Player) return;
-    const targetEl = document.getElementById(this.containerId);
-    if (!targetEl) return;
-
-    try {
-      this.player = new window.YT.Player(this.containerId, {
-        height: '180',
-        width: '320',
-        videoId: this.pendingVideoId || 'thS3-dmUvlg', // Default initial seed
-        host: 'https://www.youtube-nocookie.com',
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          disablekb: 1,
-          enablejsapi: 1,
-          fs: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          rel: 0,
-          origin: window.location.origin,
-        },
-        events: {
-          onReady: (e) => this.handlePlayerReady(e),
-          onStateChange: (e) => this.handleStateChange(e),
-          onError: (e) => this.handleError(e),
-        },
-      });
-    } catch (err) {
-      console.warn('[YTPlayerService] Failed to create YT.Player instance:', err);
+  private ensurePlayerReady(): Promise<YTPlayerInstance> {
+    if (typeof window === 'undefined') return Promise.reject(new Error('Window undefined'));
+    if (this.isReady && this.player) {
+      return Promise.resolve(this.player);
     }
+    if (this.playerReadyPromise) {
+      return this.playerReadyPromise;
+    }
+
+    this.playerReadyPromise = new Promise<YTPlayerInstance>((resolve, reject) => {
+      const readyTimeout = setTimeout(() => {
+        if (this.player) {
+          this.isReady = true;
+          resolve(this.player);
+        } else {
+          this.playerReadyPromise = null;
+          reject(new Error('YouTube player ready timeout'));
+        }
+      }, 10000);
+
+      this.loadApi()
+        .then(() => {
+          const targetEl = document.getElementById(this.containerId);
+          if (!targetEl) {
+            clearTimeout(readyTimeout);
+            this.playerReadyPromise = null;
+            reject(new Error(`Container #${this.containerId} not found in DOM`));
+            return;
+          }
+
+          if (this.player) {
+            clearTimeout(readyTimeout);
+            resolve(this.player);
+            return;
+          }
+
+          const initialVideoId =
+            this.pendingVideoId && /^[A-Za-z0-9_-]{11}$/.test(this.pendingVideoId)
+              ? this.pendingVideoId
+              : 'HmW1wIhyCng';
+
+          try {
+            this.player = new window.YT!.Player(this.containerId, {
+              height: '200',
+              width: '200',
+              videoId: initialVideoId,
+              host: 'https://www.youtube.com',
+              playerVars: {
+                autoplay: 1,
+                controls: 0,
+                disablekb: 1,
+                enablejsapi: 1,
+                fs: 0,
+                modestbranding: 1,
+                playsinline: 1,
+                rel: 0,
+                origin: window.location.origin,
+              },
+              events: {
+                onReady: (e) => {
+                  clearTimeout(readyTimeout);
+                  this.handlePlayerReady(e);
+                  resolve(e.target);
+                },
+                onStateChange: (e) => this.handleStateChange(e),
+                onError: (e) => {
+                  this.handleError(e);
+                },
+              },
+            });
+          } catch (err) {
+            clearTimeout(readyTimeout);
+            this.playerReadyPromise = null;
+            reject(err);
+          }
+        })
+        .catch((err) => {
+          clearTimeout(readyTimeout);
+          this.playerReadyPromise = null;
+          reject(err);
+        });
+    });
+
+    return this.playerReadyPromise;
   }
 
   private handlePlayerReady(event: YTPlayerReadyEvent) {
@@ -234,14 +311,6 @@ class YouTubePlayerService {
     }
 
     this.emit('ready');
-
-    if (this.pendingVideoId) {
-      const vid = this.pendingVideoId;
-      const shouldPlay = this.pendingPlay;
-      this.pendingVideoId = null;
-      this.pendingPlay = false;
-      this.loadTrack(vid, shouldPlay);
-    }
   }
 
   private handleStateChange(event: YTPlayerStateEvent) {
@@ -249,6 +318,7 @@ class YouTubePlayerService {
 
     if (pState === 1) {
       // PLAYING
+      this.clearRetryTimer();
       this.emit('play');
       this.startProgressTracker();
     } else if (pState === 2) {
@@ -261,60 +331,143 @@ class YouTubePlayerService {
       this.emit('buffering');
     } else if (pState === 0) {
       // ENDED
-      // Guard against stale ended events from rapid manual navigation
       const timeSinceManualNav = Date.now() - this.manualNavTimestamp;
       if (timeSinceManualNav < 1200) {
         return;
       }
       this.stopProgressTracker();
       this.emit('ended');
+    } else if (pState === 5 || pState === -1) {
+      // CUED (5) or UNSTARTED (-1):
+      // If playback was requested, start playback immediately
+      if (this.pendingPlay && this.player && typeof this.player.playVideo === 'function') {
+        try {
+          this.player.playVideo();
+        } catch {}
+      }
     }
   }
 
   private handleError(event: YTPlayerErrorEvent) {
     const errorCode = event ? event.data : -1;
     this.stopProgressTracker();
-    this.emit('error', { code: errorCode });
+    this.clearRetryTimer();
+
+    let message = 'Playback unavailable for this track';
+    if (errorCode === 101 || errorCode === 150) {
+      message = 'Playback restricted by content owner for this track';
+    } else if (errorCode === 100) {
+      message = 'Track not found on YouTube';
+    } else if (errorCode === 2) {
+      message = 'Invalid video ID';
+    }
+
+    this.emit('error', { code: errorCode, message });
   }
 
-  public loadTrack(videoId: string, autoPlay = true) {
+  /**
+   * Watchdog timer: If playback fails to start within 1500ms after load,
+   * safely retry playVideo() once to overcome transient browser autoplay blocks.
+   */
+  private schedulePlaybackWatchdog(videoId: string, requestId: number) {
+    this.clearRetryTimer();
+    this.retryTimer = setTimeout(() => {
+      if (this.playbackRequestId !== requestId) return;
+      if (this.currentVideoId !== videoId) return;
+
+      const isCurrentlyPlaying =
+        this.player && typeof this.player.getPlayerState === 'function' && this.player.getPlayerState() === 1;
+
+      if (!isCurrentlyPlaying && !this.retryAttempted && this.player) {
+        this.retryAttempted = true;
+        try {
+          if (typeof this.player.unMute === 'function' && !this.initialMuted) {
+            this.player.unMute();
+          }
+          if (typeof this.player.playVideo === 'function') {
+            this.player.playVideo();
+          }
+        } catch {}
+      }
+    }, 1500);
+  }
+
+  private clearRetryTimer() {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+  }
+
+  /**
+   * Main track loader:
+   * 1. Sets sequence request ID to guard against rapid song switching.
+   * 2. Asynchronously ensures the singleton YouTube player is created and ready.
+   * 3. Loads the video ID and explicitly calls playVideo().
+   * 4. Schedules a watchdog to retry if autoplay was stalled.
+   */
+  public async loadTrack(videoId: string, autoPlay = true): Promise<void> {
     const cleanId = extractCleanYouTubeId(videoId);
     if (!cleanId) return;
 
+    const requestId = ++this.playbackRequestId;
     this.manualNavTimestamp = Date.now();
     this.currentVideoId = cleanId;
-
-    if (!this.isReady || !this.player) {
-      this.pendingVideoId = cleanId;
-      this.pendingPlay = autoPlay;
-      // Lazy init: first user-initiated playback is what creates the player.
-      this.ensureInitialized();
-      return;
-    }
+    this.pendingVideoId = cleanId;
+    this.pendingPlay = autoPlay;
+    this.retryAttempted = false;
+    this.clearRetryTimer();
 
     try {
+      const player = await this.ensurePlayerReady();
+
+      // Check if a newer track request superseded this one while player was initializing
+      if (this.playbackRequestId !== requestId) {
+        return;
+      }
+
       if (autoPlay) {
-        if (typeof this.player.loadVideoById === 'function') {
-          this.player.loadVideoById(cleanId, 0);
-        } else if (typeof this.player.cueVideoById === 'function') {
-          this.player.cueVideoById(cleanId, 0);
-          this.player.playVideo();
+        if (typeof player.loadVideoById === 'function') {
+          player.loadVideoById(cleanId, 0);
+        } else if (typeof player.cueVideoById === 'function') {
+          player.cueVideoById(cleanId, 0);
         }
+
+        // Explicitly trigger playVideo after loading
+        if (typeof player.playVideo === 'function') {
+          player.playVideo();
+        }
+
+        // Arm the playback watchdog
+        this.schedulePlaybackWatchdog(cleanId, requestId);
       } else {
-        if (typeof this.player.cueVideoById === 'function') {
-          this.player.cueVideoById(cleanId, 0);
+        if (typeof player.cueVideoById === 'function') {
+          player.cueVideoById(cleanId, 0);
         }
       }
     } catch (err) {
-      console.warn('[YTPlayerService] Error loading video:', err);
+      if (this.playbackRequestId === requestId) {
+        console.warn('[YTPlayerService] Failed to load track:', err);
+        const errorMsg = err instanceof Error ? err.message : 'Failed to initialize player';
+        this.emit('error', { code: -1, message: errorMsg });
+      }
     }
   }
 
   public play() {
+    this.pendingPlay = true;
     if (!this.isReady || !this.player) {
-      this.pendingPlay = true;
-      // Lazy init: safety net so a Play press always boots the singleton player.
-      this.ensureInitialized();
+      if (this.currentVideoId) {
+        this.loadTrack(this.currentVideoId, true);
+      } else {
+        this.ensurePlayerReady()
+          .then((player) => {
+            if (typeof player.playVideo === 'function') {
+              player.playVideo();
+            }
+          })
+          .catch(() => {});
+      }
       return;
     }
     try {
@@ -327,6 +480,8 @@ class YouTubePlayerService {
   }
 
   public pause() {
+    this.pendingPlay = false;
+    this.clearRetryTimer();
     if (!this.isReady || !this.player) return;
     try {
       if (typeof this.player.pauseVideo === 'function') {
@@ -437,6 +592,7 @@ class YouTubePlayerService {
 
   public destroy() {
     this.stopProgressTracker();
+    this.clearRetryTimer();
     if (this.player && typeof this.player.destroy === 'function') {
       try {
         this.player.destroy();
@@ -446,6 +602,8 @@ class YouTubePlayerService {
     }
     this.player = null;
     this.isReady = false;
+    this.apiPromise = null;
+    this.playerReadyPromise = null;
   }
 }
 

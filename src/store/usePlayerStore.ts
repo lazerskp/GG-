@@ -88,7 +88,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       newIndex = newQueue.findIndex((t) => t.id === track.id);
     }
 
-    const cleanId = extractCleanYouTubeId(track.id);
+    const cleanId = extractCleanYouTubeId(track.id) || (track.audioUrl ? extractCleanYouTubeId(track.audioUrl) : '');
     const isPlayable = Boolean(cleanId && cleanId.length >= 8);
 
     // Persist track index
@@ -145,12 +145,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
-    if (isPlaying) {
+    if (isPlaying && playbackStatus === 'playing') {
       youtubePlayerService.pause();
       set({ isPlaying: false, playbackStatus: 'paused' });
     } else {
       youtubePlayerService.play();
-      set({ isPlaying: true, playbackStatus: 'playing' });
+      set({ isPlaying: true, playbackStatus: 'loading' });
     }
   },
 
@@ -163,7 +163,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const { currentTrack, playbackStatus } = get();
     if (currentTrack && playbackStatus !== 'unavailable') {
       youtubePlayerService.play();
-      set({ isPlaying: true, playbackStatus: 'playing' });
+      set({ isPlaying: true, playbackStatus: 'loading' });
     }
   },
 

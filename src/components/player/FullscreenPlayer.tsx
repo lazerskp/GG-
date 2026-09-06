@@ -360,7 +360,7 @@ export function FullscreenPlayer() {
             {/* Play / Pause Primary Button */}
             <button
               onClick={togglePlay}
-              disabled={isLoading || isStreamUnavailable}
+              disabled={isStreamUnavailable}
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-[0_4px_24px_rgba(255,255,255,0.25)] ${
                 isStreamUnavailable
                   ? 'bg-white/20 text-white/60 cursor-not-allowed'
