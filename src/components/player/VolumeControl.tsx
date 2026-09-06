@@ -22,25 +22,26 @@ export function VolumeControl({
 
   const renderIcon = () => {
     if (isMuted || currentVolume === 0) {
-      return <VolumeX className="w-4 h-4 text-[#8F8F8F]" />;
+      return <VolumeX className="w-3.5 h-3.5 text-[#8F8F8F]" />;
     }
     if (currentVolume < 0.5) {
-      return <Volume1 className="w-4 h-4 text-[#A1A1A1]" />;
+      return <Volume1 className="w-3.5 h-3.5 text-[#A1A1A6]" />;
     }
-    return <Volume2 className="w-4 h-4 text-[#A1A1A1] group-hover:text-white" />;
+    return <Volume2 className="w-3.5 h-3.5 text-[#A1A1A6] group-hover:text-white" />;
   };
 
   return (
-    <div className={`flex items-center space-x-2 group ${className}`}>
+    <div className={`flex items-center gap-1 group ${className}`}>
       <button
         onClick={onToggleMute}
-        className="p-1 rounded text-[#A1A1A1] hover:text-white transition-colors focus:outline-hidden"
+        className="p-1.5 rounded-full text-[#A1A1A6] hover:text-white hover:bg-white/[0.06] transition-colors focus:outline-hidden"
         aria-label={isMuted ? 'Unmute' : 'Mute'}
+        title={isMuted ? 'Unmute' : 'Mute'}
       >
         {renderIcon()}
       </button>
 
-      <div className="w-14 md:w-16 lg:w-24 relative flex items-center h-4">
+      <div className="w-12 sm:w-14 lg:w-18 relative flex items-center h-4">
         <input
           type="range"
           min="0"
@@ -48,7 +49,7 @@ export function VolumeControl({
           step="0.01"
           value={currentVolume}
           onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-          className="w-full h-1 bg-[#262626] rounded-full appearance-none cursor-pointer"
+          className="w-full h-1 bg-[#27272A] rounded-full appearance-none cursor-pointer accent-white hover:accent-white"
           aria-label="Adjust volume"
         />
       </div>

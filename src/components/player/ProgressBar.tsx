@@ -68,12 +68,12 @@ export function ProgressBar({
       <div
         ref={progressBarRef}
         onPointerDown={handlePointerDown}
-        className={`group relative flex-1 flex items-center cursor-pointer touch-none ${compact ? 'h-4' : 'h-6'}`}
+        className={`group relative flex-1 flex items-center cursor-pointer touch-none ${compact ? 'h-2.5' : 'h-6'}`}
       >
         {/* Track Rail */}
         <div
-          className={`relative w-full bg-[#262626] rounded-full overflow-hidden transition-all duration-150 ${
-            compact ? 'h-[3px] group-hover:h-1' : 'h-1 group-hover:h-1.5'
+          className={`relative w-full bg-[#27272A] rounded-full overflow-hidden transition-all duration-150 ${
+            compact ? 'h-[2.5px] group-hover:h-[3.5px]' : 'h-1 group-hover:h-1.5'
           }`}
         >
           {/* Filled Bar */}
@@ -85,8 +85,8 @@ export function ProgressBar({
 
         {/* Thumb (reveals on hover/drag) */}
         <div
-          className={`absolute rounded-full bg-white shadow-lg pointer-events-none transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ${
-            compact ? 'w-2.5 h-2.5' : 'w-3 h-3'
+          className={`absolute rounded-full bg-white shadow-md pointer-events-none transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ${
+            compact ? 'w-2 h-2' : 'w-3 h-3'
           }`}
           style={{ left: `${progressPercent}%` }}
         />

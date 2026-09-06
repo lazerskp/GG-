@@ -58,13 +58,13 @@ export function DesktopPlayer() {
   return (
     <footer
       aria-label="Audio Player"
-      className="hidden md:block fixed bottom-2.5 left-0 right-0 z-40 px-4 sm:px-6 max-w-[1180px] xl:max-w-[1280px] mx-auto select-none pointer-events-none animate-player-enter"
+      className="hidden md:flex fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-32px)] max-w-[820px] xl:max-w-[860px] select-none pointer-events-none animate-player-enter"
     >
-      {/* Compact GULLYGANG floating player surface */}
+      {/* Compact Floating GULLYGANG Player Shell */}
       <div
-        className="pointer-events-auto relative h-[56px] rounded-2xl bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/[0.08] px-4 flex items-center justify-between gap-4 overflow-hidden transition-[box-shadow] duration-500 shadow-[0_8px_32px_rgba(0,0,0,0.85)]"
+        className="pointer-events-auto relative w-full h-[62px] rounded-[24px] bg-[#101012]/96 backdrop-blur-2xl border border-white/[0.09] px-3.5 sm:px-4 flex items-center justify-between gap-3 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.8)] transition-all duration-300"
       >
-        {/* Subtle ambient glow wash */}
+        {/* Subtle dynamic artwork ambient glow */}
         <div
           aria-hidden="true"
           className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 ${
@@ -72,65 +72,12 @@ export function DesktopPlayer() {
           }`}
           style={{
             background:
-              'radial-gradient(ellipse 40% 120% at 20% 50%, var(--artwork-dominant, rgba(255,255,255,0.15)), transparent 70%)',
+              'radial-gradient(ellipse 40% 120% at 50% 50%, var(--artwork-dominant, rgba(255,255,255,0.12)), transparent 70%)',
           }}
         />
 
-        {/* 1. LEFT: Artwork + Song Title + Artist (Aligned cleanly) */}
-        <div className="relative flex items-center gap-3 w-[220px] lg:w-[260px] shrink-0 min-w-0">
-          <div
-            onClick={() => setIsFullscreenOpen(true)}
-            className="relative w-9 h-9 rounded-md overflow-hidden bg-[#161616] shrink-0 border border-white/[0.08] cursor-pointer group"
-            title="Open fullscreen player"
-          >
-            <Image
-              src={
-                currentTrack.artworkUrl?.trim() ||
-                'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop'
-              }
-              alt={currentTrack.title}
-              fill
-              sizes="36px"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          </div>
-
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <p
-              onClick={() => setIsFullscreenOpen(true)}
-              className="text-xs font-semibold text-white truncate leading-tight tracking-tight cursor-pointer hover:underline"
-            >
-              {currentTrack.title}
-            </p>
-
-            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-              {currentTrack.artistId ? (
-                <Link
-                  href={`/artist/${encodeURIComponent(currentTrack.artistId)}`}
-                  aria-label={`Open ${currentTrack.artist} page`}
-                  className="text-[11px] text-[#A1A1A6] hover:text-white transition-colors truncate"
-                >
-                  {currentTrack.artist}
-                </Link>
-              ) : (
-                <span className="text-[11px] text-[#A1A1A6] truncate">
-                  {currentTrack.artist}
-                </span>
-              )}
-
-              {isStreamUnavailable && (
-                <span className="flex items-center gap-0.5 text-[9px] text-amber-400 font-medium shrink-0">
-                  <AlertCircle className="w-2.5 h-2.5" />
-                  Unavailable
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 2. CENTER: Playback Controls + Thin Scrubber */}
-        <div className="relative flex-1 max-w-md flex flex-col items-center justify-center gap-1">
-          {/* Transport buttons: Shuffle, Previous, Play/Pause, Next, Repeat */}
+        {/* 1. LEFT: Transport Controls (Shuffle, Previous, Play/Pause, Next, Repeat) */}
+        <div className="relative shrink-0 flex items-center gap-0.5 sm:gap-1">
           <PlayerControls
             isPlaying={isPlaying}
             playbackStatus={playbackStatus}
@@ -143,13 +90,80 @@ export function DesktopPlayer() {
             onCycleRepeat={cycleRepeatMode}
             size="compact"
           />
+        </div>
 
-          {/* Thin progress line with monospace timestamps */}
-          <div className="w-full flex items-center gap-2">
-            <span className="text-[10px] font-mono tabular-nums text-[#8F8F8F] w-7 text-right shrink-0">
-              {formatTime(currentTime)}
-            </span>
-            <div className="flex-1">
+        {/* 2. CENTER: Album Artwork + Track Metadata + Thin Progress Bar */}
+        <div className="relative flex-1 min-w-0 flex items-center gap-2.5 sm:gap-3 px-1">
+          {/* Artwork: 42px square, slightly rounded, not circular */}
+          <div
+            onClick={() => setIsFullscreenOpen(true)}
+            className="relative w-[42px] h-[42px] rounded-lg overflow-hidden bg-[#18181A] shrink-0 border border-white/[0.08] cursor-pointer group shadow-sm"
+            title="Open fullscreen player"
+          >
+            <Image
+              src={
+                currentTrack.artworkUrl?.trim() ||
+                'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop'
+              }
+              alt={currentTrack.title}
+              fill
+              sizes="42px"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+
+          {/* Metadata & Progress Column */}
+          <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+            <div className="flex items-baseline justify-between gap-2 min-w-0">
+              {/* Title • Artist • Album */}
+              <div className="flex items-baseline gap-1.5 min-w-0 truncate">
+                <span
+                  onClick={() => setIsFullscreenOpen(true)}
+                  className="text-xs font-semibold text-white truncate leading-tight tracking-tight cursor-pointer hover:underline"
+                  title={currentTrack.title}
+                >
+                  {currentTrack.title}
+                </span>
+                <span className="text-[#52525B] text-[10px] select-none shrink-0">•</span>
+                {currentTrack.artistId ? (
+                  <Link
+                    href={`/artist/${encodeURIComponent(currentTrack.artistId)}`}
+                    className="text-[11px] text-[#A1A1A6] hover:text-white transition-colors truncate"
+                    title={currentTrack.artist}
+                  >
+                    {currentTrack.artist}
+                  </Link>
+                ) : (
+                  <span className="text-[11px] text-[#A1A1A6] truncate" title={currentTrack.artist}>
+                    {currentTrack.artist}
+                  </span>
+                )}
+                {currentTrack.album && currentTrack.album !== currentTrack.title && (
+                  <>
+                    <span className="text-[#52525B] text-[10px] select-none shrink-0 hidden lg:inline">•</span>
+                    <span className="text-[11px] text-[#71717A] truncate hidden lg:inline" title={currentTrack.album}>
+                      {currentTrack.album}
+                    </span>
+                  </>
+                )}
+                {isStreamUnavailable && (
+                  <span className="flex items-center gap-0.5 text-[9px] text-amber-400 font-medium shrink-0 ml-1">
+                    <AlertCircle className="w-2.5 h-2.5" />
+                    Unavailable
+                  </span>
+                )}
+              </div>
+
+              {/* Timestamps */}
+              <div className="shrink-0 flex items-center gap-1 text-[10px] font-mono tabular-nums text-[#71717A] select-none">
+                <span>{formatTime(currentTime)}</span>
+                <span className="text-[#3F3F46]">/</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Thin Progress Bar (2.5px) */}
+            <div className="w-full">
               <ProgressBar
                 currentTime={currentTime}
                 duration={duration}
@@ -158,19 +172,16 @@ export function DesktopPlayer() {
                 compact
               />
             </div>
-            <span className="text-[10px] font-mono tabular-nums text-[#8F8F8F] w-7 text-left shrink-0">
-              {formatTime(duration)}
-            </span>
           </div>
         </div>
 
-        {/* 3. RIGHT: Lyrics · Queue · Volume · Fullscreen */}
-        <div className="relative flex items-center justify-end gap-1.5 w-[220px] lg:w-[260px] shrink-0">
-          {/* Lyrics toggle */}
+        {/* 3. RIGHT: Actions (Lyrics, Queue, Volume, Fullscreen) */}
+        <div className="relative shrink-0 flex items-center gap-1 sm:gap-1.5">
+          {/* Lyrics toggle (Priority hidden on smaller viewports) */}
           <button
             type="button"
             onClick={toggleLyricsPanel}
-            className={`p-1.5 rounded-full transition-colors ${
+            className={`hidden xl:inline-flex p-1.5 rounded-full transition-colors ${
               rightPanelMode === 'lyrics'
                 ? 'text-white bg-white/[0.14]'
                 : 'text-[#A1A1A6] hover:text-white hover:bg-white/[0.06]'
@@ -199,7 +210,7 @@ export function DesktopPlayer() {
             )}
           </button>
 
-          {/* Compact volume */}
+          {/* Volume control */}
           <VolumeControl
             volume={volume}
             isMuted={isMuted}
