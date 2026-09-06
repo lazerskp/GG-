@@ -5,6 +5,7 @@ import { cacheService, CACHE_TTLS } from '@/server/cache/cacheService';
 import { serverConfig } from '@/server/config';
 import { getDevIndianArtists, getDevGlobalArtists } from '@/data/fixtures';
 import { Artist } from '@/types/music';
+import { deduplicateArtists } from '@/utils/artistDeduplication';
 
 const querySchema = z.object({
   region: z.enum(['india', 'global']).optional(),
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
   }
 
   const region = parseResult.data.region;
-  const cacheKey = `artists:list:${region || 'all'}`;
+  const cacheKey = `artists:list:v3:${region || 'all'}`;
 
   const cached = await cacheService.get<Artist[]>(cacheKey);
   if (cached) {
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
         bio: item.description || '',
         imageUrl: item.image_url,
         region: item.region,
-        monthlyListeners: item.monthly_listeners || '',
+        monthlyListeners: '',
         genres: item.genres || [],
         verified: item.verified ?? true,
       }));
@@ -75,14 +76,11 @@ export async function GET(request: NextRequest) {
       ...getDevIndianArtists(),
       ...getDevGlobalArtists(),
     ];
-    const seen = new Set<string>();
-    artists = all.filter((a) => {
-      if (seen.has(a.id)) return false;
-      seen.add(a.id);
-      if (region && a.region !== region) return false;
-      return true;
-    });
+    artists = all.filter((a) => !region || a.region === region);
   }
+
+  // Multi-pass deduplication by ID and normalized name
+  artists = deduplicateArtists(artists);
 
   if (artists.length > 0) {
     await cacheService.set(cacheKey, artists, CACHE_TTLS.ARTIST, 'insforge');

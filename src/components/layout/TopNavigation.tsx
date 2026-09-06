@@ -258,20 +258,50 @@ export function TopNavigation() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-[#0A0A0A]/85 backdrop-blur-xl border-b border-white/[0.06] transition-[background-color] duration-300">
-        <div className="w-full max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 h-16 flex items-center justify-between gap-6">
-          {/* 1. Left: Branding */}
-          <Link href="/" className="flex flex-col group shrink-0 select-none">
-            <span className="text-xl sm:text-2xl font-black tracking-tighter text-white uppercase group-hover:opacity-90 transition-opacity">
-              GULLYGANG
-            </span>
-            <span className="text-[9px] font-mono tracking-[0.25em] text-[#A1A1A1] uppercase -mt-0.5 group-hover:text-white transition-colors">
-              MUSIC DISCOVERY
-            </span>
-          </Link>
+      <header className="sticky top-0 z-40 w-full bg-[#080808]/90 backdrop-blur-xl border-b border-white/[0.06] transition-colors duration-300">
+        <div className="w-full max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 h-14 sm:h-16 flex items-center justify-between gap-4 sm:gap-8">
+          {/* 1. Left: Minimal Wordmark Branding */}
+          <div className="flex items-center gap-8 shrink-0">
+            <Link href="/" className="flex items-baseline gap-2 group select-none">
+              <span className="text-lg sm:text-xl font-black tracking-tighter text-white uppercase group-hover:opacity-80 transition-opacity">
+                GULLYGANG
+              </span>
+              <span className="hidden sm:inline-block text-[9px] font-mono tracking-[0.25em] text-[#8F8F8F] uppercase">
+                DISCOVERY
+              </span>
+            </Link>
 
-          {/* 2. Center: Large Search Experience (Desktop) */}
-          <div ref={containerRef} className="hidden md:block flex-1 max-w-xl mx-auto relative">
+            {/* Desktop Editorial Navigation Links */}
+            <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-6 text-xs font-medium tracking-wide">
+              <Link
+                href="/"
+                className="text-[#A1A1A6] hover:text-white transition-colors duration-200"
+              >
+                Discover
+              </Link>
+              <Link
+                href="/#new-releases"
+                className="text-[#A1A1A6] hover:text-white transition-colors duration-200"
+              >
+                New Releases
+              </Link>
+              <Link
+                href="/#artists"
+                className="text-[#A1A1A6] hover:text-white transition-colors duration-200"
+              >
+                Artists
+              </Link>
+              <Link
+                href="/charts"
+                className="text-white hover:text-white transition-colors duration-200 font-semibold"
+              >
+                Charts
+              </Link>
+            </nav>
+          </div>
+
+          {/* 2. Center/Right: Sleek Search Experience */}
+          <div ref={containerRef} className="hidden md:block flex-1 max-w-md relative">
             <div
               className={`relative flex items-center w-full h-10 px-4 rounded-full transition-all duration-200 ${
                 isFocused
@@ -720,8 +750,8 @@ export function TopNavigation() {
             )}
           </div>
 
-          {/* 3. Right: Charts Link & Mobile Search Trigger */}
-          <div className="flex items-center space-x-4 shrink-0">
+          {/* 3. Right: Mobile Search Trigger & Mobile Charts */}
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
             {/* Mobile Search Icon */}
             <button
               type="button"
@@ -732,13 +762,12 @@ export function TopNavigation() {
               <Search className="w-4 h-4" />
             </button>
 
-            {/* CHARTS — pure typography, no boxes, pills, or borders */}
+            {/* Mobile Quick Charts Link */}
             <Link
               href="/charts"
-              className="relative text-xs font-mono uppercase tracking-widest text-[#A1A1A1] hover:text-white transition-all duration-200 py-1 hover:tracking-[0.2em] group select-none"
+              className="lg:hidden text-xs font-semibold text-white px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] transition-colors"
             >
-              <span>CHARTS</span>
-              <span className="absolute bottom-0 left-0 w-full h-[1px] bg-white scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+              Charts
             </Link>
           </div>
         </div>

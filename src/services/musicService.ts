@@ -7,6 +7,7 @@ import {
   getDevGlobalTracks,
   getDevGlobalAlbums,
 } from '@/data/fixtures';
+import { deduplicateArtists } from '@/utils/artistDeduplication';
 
 export interface IMusicService {
   getHeroFeaturedTrack(): Promise<{ artist: Artist; song: Song } | null>;
@@ -19,26 +20,45 @@ export interface IMusicService {
   search(query: string): Promise<{ artists: Artist[]; songs: Song[]; albums: Album[] }>;
 }
 
+const DISCOVERY_RELEASE_QUERIES = [
+  'Seedhe Maut',
+  'Krsna rap',
+  'DIVINE rap',
+  'Rawal rap',
+  'Talha Anjum',
+  'Raftaar rap',
+  'Encore ABJ',
+  'Calm rap',
+];
+
 class ProductionMusicService implements IMusicService {
   async getHeroFeaturedTrack(): Promise<{ artist: Artist; song: Song } | null> {
     if (typeof window === 'undefined') {
       try {
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        const artists = await insforgeRepo.getArtists('india');
+        const rawArtists = await insforgeRepo.getArtists('india');
+        const artists = deduplicateArtists(rawArtists);
         if (artists.length > 0) {
-          const heroArtist = artists[0];
+          // Find prominent artist (prefer DIVINE, Seedhe Maut, KR$NA, Hanumankind)
+          const preferredSlugs = ['divine', 'seedhe-maut', 'kr-na', 'hanumankind'];
+          const heroArtist =
+            artists.find((a) => preferredSlugs.includes(a.id.toLowerCase())) || artists[0];
+
           const songs = await insforgeRepo.getSongs({ artist_id: heroArtist.id });
-          const heroSong = songs.length > 0 ? songs[0] : {
-            id: `song-${heroArtist.id}`,
-            title: `${heroArtist.name} Anthem`,
-            artist: heroArtist.name,
-            artistId: heroArtist.id,
-            artworkUrl: heroArtist.imageUrl,
-            duration: 210,
-            releaseYear: 2024,
-            region: 'india' as const,
-            genre: heroArtist.genres[0] || 'Desi Hip-Hop',
-          };
+          const heroSong =
+            songs.length > 0
+              ? songs[0]
+              : {
+                  id: `song-${heroArtist.id}`,
+                  title: `${heroArtist.name} Spotlight`,
+                  artist: heroArtist.name,
+                  artistId: heroArtist.id,
+                  artworkUrl: heroArtist.imageUrl,
+                  duration: 210,
+                  releaseYear: 0,
+                  region: 'india' as const,
+                  genre: heroArtist.genres[0] || 'Desi Hip-Hop',
+                };
           return { artist: heroArtist, song: heroSong };
         }
       } catch {
@@ -62,7 +82,8 @@ class ProductionMusicService implements IMusicService {
     if (typeof window === 'undefined') {
       try {
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        const artists = await insforgeRepo.getArtists('india');
+        const rawArtists = await insforgeRepo.getArtists('india');
+        const artists = deduplicateArtists(rawArtists);
         if (artists.length > 0) return artists;
       } catch {
         // Fall through
@@ -70,12 +91,15 @@ class ProductionMusicService implements IMusicService {
 
       const { serverConfig } = await import('@/server/config');
       if (serverConfig.useDevFixtures) {
-        return getDevIndianArtists();
+        return deduplicateArtists(getDevIndianArtists());
       }
     } else {
       try {
         const res = await fetch('/api/artists?region=india');
-        if (res.ok) return await res.json();
+        if (res.ok) {
+          const raw = await res.json();
+          return deduplicateArtists(raw);
+        }
       } catch {
         // Fall through
       }
@@ -127,7 +151,8 @@ class ProductionMusicService implements IMusicService {
     if (typeof window === 'undefined') {
       try {
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        const artists = await insforgeRepo.getArtists('global');
+        const rawArtists = await insforgeRepo.getArtists('global');
+        const artists = deduplicateArtists(rawArtists);
         if (artists.length > 0) return artists;
       } catch {
         // Fall through
@@ -135,12 +160,15 @@ class ProductionMusicService implements IMusicService {
 
       const { serverConfig } = await import('@/server/config');
       if (serverConfig.useDevFixtures) {
-        return getDevGlobalArtists();
+        return deduplicateArtists(getDevGlobalArtists());
       }
     } else {
       try {
         const res = await fetch('/api/artists?region=global');
-        if (res.ok) return await res.json();
+        if (res.ok) {
+          const raw = await res.json();
+          return deduplicateArtists(raw);
+        }
       } catch {
         // Fall through
       }
@@ -181,10 +209,57 @@ class ProductionMusicService implements IMusicService {
   async getNewReleases(): Promise<Album[]> {
     if (typeof window === 'undefined') {
       try {
+        const { cacheService, CACHE_TTLS } = await import('@/server/cache/cacheService');
+        const cacheKey = 'albums:new-releases:v3';
+        const cached = await cacheService.get<Album[]>(cacheKey);
+        if (cached && cached.length > 0) {
+          return cached;
+        }
+
+        const { pythonClient } = await import('@/server/music/pythonClient');
+        const searchPromises = DISCOVERY_RELEASE_QUERIES.map((q) =>
+          pythonClient.search(q).then((res) => res.albums || []).catch(() => [] as Album[])
+        );
+        const results = await Promise.all(searchPromises);
+        const allAlbums: Album[] = [];
+        for (const list of results) {
+          allAlbums.push(...list);
+        }
+
+        const seenIds = new Set<string>();
+        const seenTitles = new Set<string>();
+        const cleanAlbums: Album[] = [];
+
+        for (const al of allAlbums) {
+          if (!al || !al.title || !al.id) continue;
+          if (seenIds.has(al.id)) continue;
+          const titleKey = al.title.toLowerCase().trim();
+          if (seenTitles.has(titleKey)) continue;
+
+          if (al.artist === 'Various Artists') continue;
+          if (/bollywood|non stop|dj jitesh|remix|funny|soundtrack/i.test(al.title)) continue;
+
+          seenIds.add(al.id);
+          seenTitles.add(titleKey);
+          cleanAlbums.push(al);
+        }
+
+        cleanAlbums.sort((a, b) => (b.releaseYear || 0) - (a.releaseYear || 0));
+
+        if (cleanAlbums.length > 0) {
+          await cacheService.set(cacheKey, cleanAlbums, CACHE_TTLS.ALBUM, 'live_discovery');
+          return cleanAlbums;
+        }
+
+        // Database fallback
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        const albums = await insforgeRepo.getAlbums();
-        if (albums.length > 0) {
-          return albums.sort((a, b) => b.releaseYear - a.releaseYear);
+        const dbAlbums = await insforgeRepo.getAlbums();
+        const filteredDb = dbAlbums.filter(
+          (a) => a.artist !== 'Various Artists' && !/bollywood/i.test(a.title)
+        );
+        if (filteredDb.length > 0) {
+          filteredDb.sort((a, b) => (b.releaseYear || 0) - (a.releaseYear || 0));
+          return filteredDb;
         }
       } catch {
         // Fall through
@@ -193,6 +268,15 @@ class ProductionMusicService implements IMusicService {
       const { serverConfig } = await import('@/server/config');
       if (serverConfig.useDevFixtures) {
         return [...getDevIndianAlbums(), ...getDevGlobalAlbums()].sort((a, b) => b.releaseYear - a.releaseYear);
+      }
+    } else {
+      try {
+        const res = await fetch('/api/albums');
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch {
+        // Fall through
       }
     }
     return [];
@@ -230,7 +314,11 @@ class ProductionMusicService implements IMusicService {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
         if (res.ok) {
-          return await res.json();
+          const data = await res.json();
+          if (data && Array.isArray(data.artists)) {
+            data.artists = deduplicateArtists(data.artists);
+          }
+          return data;
         }
       } catch {
         // Return empty on network error
@@ -238,7 +326,11 @@ class ProductionMusicService implements IMusicService {
     } else {
       try {
         const { pythonClient } = await import('@/server/music/pythonClient');
-        return await pythonClient.search(q);
+        const res = await pythonClient.search(q);
+        if (res && Array.isArray(res.artists)) {
+          res.artists = deduplicateArtists(res.artists);
+        }
+        return res;
       } catch {
         // Return empty
       }
@@ -249,3 +341,4 @@ class ProductionMusicService implements IMusicService {
 }
 
 export const musicService = new ProductionMusicService();
+

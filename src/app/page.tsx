@@ -85,19 +85,19 @@ export default async function HomePage() {
         description="The heavyweight tracks capturing the sound of Mumbai, Delhi, Bengaluru, and beyond."
       />
 
-      {/* 4. The Daily Feature (Automated Daily Rotation) — Streamed asynchronously */}
+      {/* 4. New Releases (Real live albums & EPs) — Streamed asynchronously */}
+      <Suspense fallback={<div className="min-h-[220px]" aria-hidden="true" />}>
+        <NewReleasesSection />
+      </Suspense>
+
+      {/* 5. The Daily Feature (Automated Daily Rotation) — Streamed asynchronously */}
       <Suspense fallback={<div className="min-h-[280px]" aria-hidden="true" />}>
         <DailyFeatureSection />
       </Suspense>
 
-      {/* 5. International Rap / Global Rap — Streamed asynchronously */}
+      {/* 6. International Rap / Global Rap — Streamed asynchronously */}
       <Suspense fallback={<div className="min-h-[300px]" aria-hidden="true" />}>
         <GlobalRapSectionAsync />
-      </Suspense>
-
-      {/* 6. New Releases — Streamed asynchronously */}
-      <Suspense fallback={<div className="min-h-[220px]" aria-hidden="true" />}>
-        <NewReleasesSection />
       </Suspense>
 
       {/* 7. Explore Styles */}

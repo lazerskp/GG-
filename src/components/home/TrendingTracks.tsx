@@ -21,7 +21,7 @@ export function TrendingTracks({
   if (!tracks || tracks.length === 0) return null;
 
   return (
-    <section className="mb-14 sm:mb-20" aria-label={title}>
+    <section id="trending" className="mb-14 sm:mb-20" aria-label={title}>
       <SectionHeader
         eyebrow={eyebrow}
         title={title}

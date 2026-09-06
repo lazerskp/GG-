@@ -1,50 +1,42 @@
 'use client';
 
 import React from 'react';
-import { Album, Song } from '@/types/music';
-import { SectionHeader } from '@/components/music/SectionHeader';
+import { useRouter } from 'next/navigation';
+import { Album } from '@/types/music';
 import { AlbumCard } from '@/components/music/AlbumCard';
-import { usePlayerStore } from '@/store/usePlayerStore';
 
 interface NewReleasesProps {
   albums: Album[];
 }
 
 export function NewReleases({ albums }: NewReleasesProps) {
-  const { playTrack } = usePlayerStore();
+  const router = useRouter();
 
   if (!albums || albums.length === 0) return null;
 
   const handlePlayAlbum = (album: Album) => {
-    // Generate a placeholder lead track for album playback
-    const leadTrack: Song = {
-      id: `album-lead-${album.id}`,
-      title: `${album.title} (Intro)`,
-      artist: album.artist,
-      artistId: album.artistId,
-      album: album.title,
-      albumId: album.id,
-      artworkUrl: album.artworkUrl,
-      duration: 210,
-      releaseYear: album.releaseYear,
-      region: album.region,
-      genre: 'Hip-Hop',
-    };
-    playTrack(leadTrack, [leadTrack]);
+    // Navigate to the album page to stream the official full tracklist
+    router.push(`/album/${encodeURIComponent(album.id)}`);
   };
 
   return (
-    <section id="new-releases" className="mb-14 sm:mb-20 content-auto" aria-label="New Releases">
-      <SectionHeader
-        eyebrow="FRESH DROPS"
-        title="New Releases"
-        description="The latest full-length albums, EPs, and seminal project tapes hitting the scene."
-      />
+    <section id="new-releases" className="mb-14 sm:mb-20" aria-label="New Releases">
+      {/* Editorial Header Bar */}
+      <div className="flex items-end justify-between mb-8 pb-4 border-b border-white/[0.06]">
+        <div>
+          <p className="text-[11px] font-mono tracking-[0.2em] text-[#8F8F8F] uppercase font-semibold mb-1">
+            FRESH DROPS
+          </p>
+          <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white">
+            New Releases
+          </h2>
+        </div>
+      </div>
 
-      {/* Desktop: Grid | Mobile: Horizontal Scroll with Snap */}
-      <div className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6 overflow-x-auto no-scrollbar pb-3 md:pb-0 snap-x snap-mandatory">
+      {/* Grid: 2 cols on mobile, 3 on tablet, 6 on desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5 sm:gap-6">
         {albums.slice(0, 12).map((album) => (
-          <div key={album.id} className="snap-start shrink-0 w-40 sm:w-44 md:w-auto">
+          <div key={album.id}>
             <AlbumCard
               album={album}
               onPlay={() => handlePlayAlbum(album)}

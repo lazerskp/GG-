@@ -266,11 +266,11 @@ export class InsForgeRepository {
       albumId: s.album_id,
       artworkUrl: s.artwork_url,
       duration: s.duration_seconds || 0,
-      releaseYear: 2024,
+      releaseYear: s.release_date ? new Date(s.release_date).getFullYear() : 0,
       region: 'india',
       genre: s.genre || 'Hip-Hop',
       trendingRank: s.trending_rank,
-      plays: (s.metadata?.plays as string) || '1M+',
+      plays: (s.metadata?.plays as string) || '',
       audioUrl: s.metadata?.audioUrl as string | undefined,
     }));
   }
@@ -286,7 +286,7 @@ export class InsForgeRepository {
       artist: (al.metadata?.artist_name as string) || '',
       artistId: al.artist_id,
       artworkUrl: al.artwork_url,
-      releaseYear: al.release_year || 2024,
+      releaseYear: al.release_year || 0,
       trackCount: al.track_count || 1,
       type: al.album_type || 'album',
       region: 'india',
