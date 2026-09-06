@@ -1,0 +1,10 @@
+{
+  "venvPath": "music-service",
+  "venv": ".venv",
+  "extraPaths": [
+    "music-service"
+  ],
+  "include": [
+    "music-service"
+  ]
+}

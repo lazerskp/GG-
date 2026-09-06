@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/music-service/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/music-service"
+  ],
+  "css.lint.unknownAtRules": "ignore"
+}
