@@ -36,54 +36,33 @@ class ProductionMusicService implements IMusicService {
     if (typeof window === 'undefined') {
       try {
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        let rawArtists = await insforgeRepo.getArtists('india');
-        if (!rawArtists || rawArtists.length === 0) {
-          rawArtists = await insforgeRepo.getArtists();
-        }
+        const rawArtists = await insforgeRepo.getArtists();
         const artists = deduplicateArtists(rawArtists);
-        if (artists.length > 0) {
-          // Find prominent artist (prefer KR$NA, DIVINE, Seedhe Maut, Hanumankind)
-          const preferredSlugs = ['kr-na', 'krsna', 'divine', 'seedhe-maut', 'hanumankind'];
-          const heroArtist =
-            artists.find(
-              (a) =>
-                preferredSlugs.includes(a.id.toLowerCase()) ||
-                preferredSlugs.some((slug) => a.name.toLowerCase().includes(slug))
-            ) || artists[0];
+        const preferredSlugs = ['divine', 'krsna', 'kr-na', 'seedhe-maut', 'hanumankind'];
+        const heroArtist = artists.find(
+          (a) =>
+            preferredSlugs.includes(a.id.toLowerCase().trim()) ||
+            preferredSlugs.includes(a.name.toLowerCase().trim())
+        );
 
-          let songs = await insforgeRepo.getSongs({ artist_id: heroArtist.id });
-          if (!songs || songs.length === 0) {
-            songs = await insforgeRepo.getSongs();
+        if (heroArtist) {
+          const songs = await insforgeRepo.getSongs({ artist_id: heroArtist.id });
+          if (songs && songs.length > 0) {
+            return { artist: heroArtist, song: songs[0] };
           }
-
-          const heroSong =
-            songs && songs.length > 0
-              ? songs[0]
-              : {
-                  id: 'fSwe7XoAi2g',
-                  title: 'Makasam',
-                  artist: heroArtist.name,
-                  artistId: heroArtist.id,
-                  artworkUrl: heroArtist.imageUrl || 'https://i.ytimg.com/vi/fSwe7XoAi2g/maxresdefault.jpg',
-                  duration: 236,
-                  releaseYear: 2020,
-                  region: 'india' as const,
-                  genre: heroArtist.genres[0] || 'Desi Hip-Hop',
-                };
-          return { artist: heroArtist, song: heroSong };
         }
       } catch {
         // Fall through
       }
 
-      // Check development fixture toggle
-      const { serverConfig } = await import('@/server/config');
-      if (serverConfig.useDevFixtures) {
-        const devArtists = getDevIndianArtists();
-        const devTracks = getDevIndianTracks();
-        if (devArtists.length > 0 && devTracks.length > 0) {
-          return { artist: devArtists[0], song: devTracks[0] };
+      // Canonical Desi Hip-Hop editorial spotlight: DIVINE — 3:59 AM
+      try {
+        const { INDIAN_ARTISTS, INDIAN_TRACKS } = await import('@/data/fixtures/indianRap');
+        if (INDIAN_ARTISTS.length > 0 && INDIAN_TRACKS.length > 0) {
+          return { artist: INDIAN_ARTISTS[0], song: INDIAN_TRACKS[0] };
         }
+      } catch {
+        // Fall through
       }
     }
     return null;

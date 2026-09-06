@@ -66,6 +66,8 @@ export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroP
     ? heroArtist.bio.split('. ')[0].replace(/\.$/, '') + '.'
     : 'Pioneering the raw lyrical vanguard and defining modern Indian Hip-Hop.';
 
+  const displayName = heroArtist.name.toLowerCase() === 'krsna' ? 'KR$NA' : heroArtist.name;
+
   return (
     <section
       id="hero"
@@ -85,7 +87,7 @@ export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroP
 
           {/* 2. Large primary heading: ARTIST NAME */}
           <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white uppercase leading-[0.92] mb-6">
-            {heroArtist.name}
+            {displayName}
           </h1>
 
           {/* 3. Small label & 4. Song title: TOP SONG */}
