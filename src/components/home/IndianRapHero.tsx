@@ -73,113 +73,112 @@ export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroP
     <section
       id="hero"
       aria-label="Editorial Artist Spotlight"
-      className="relative w-full pt-4 sm:pt-8 pb-12 sm:pb-16 select-none overflow-hidden"
+      className="relative w-[calc(100%+2rem)] sm:w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] lg:w-[calc(100%+6rem)] -mx-4 sm:-mx-6 md:-mx-8 lg:-mx-12 -mt-4 sm:-mt-6 mb-12 sm:mb-16 min-h-[580px] sm:min-h-[640px] lg:min-h-[720px] flex flex-col justify-center select-none overflow-hidden bg-[#0A0A0A]"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center min-h-[460px] sm:min-h-[520px]">
-        {/* Left Side: Editorial Typography & Actions (occupies 58% on desktop) */}
-        <div className="order-2 lg:order-1 lg:col-span-7 flex flex-col justify-center z-10">
-          {/* 1. Small eyebrow: Horizontal line + EDITORIAL SPOTLIGHT */}
-          <div className="flex items-center space-x-3 mb-5">
-            <span className="w-6 h-[1.5px] bg-[#71717A] shrink-0" />
-            <span className="text-[11px] font-mono tracking-[0.25em] text-[#8F8F8F] uppercase font-semibold">
-              EDITORIAL SPOTLIGHT
-            </span>
-          </div>
+      {/* 1. Full-bleed Background Artist Image (occupies right side, edge-to-edge, zero boxes) */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-0 bottom-0 w-full lg:w-[62%] xl:w-[58%] h-full">
+          <Image
+            src={heroImageSrc}
+            alt={heroArtist.name}
+            fill
+            priority
+            quality={90}
+            sizes="(max-width: 1024px) 100vw, 60vw"
+            className="object-cover object-top lg:object-center"
+          />
 
-          {/* 2. Large primary heading: ARTIST NAME */}
-          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tight text-white uppercase leading-[0.88] mb-7">
-            {displayName}
-          </h1>
+          {/* Smooth left gradient: blends seamless solid black into artist photography */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/80 lg:via-[#0A0A0A]/40 to-transparent" />
 
-          {/* 3. Small label & 4. Song title: TOP SONG */}
-          <div className="mb-4">
-            <p className="text-[10px] font-mono tracking-[0.22em] text-[#71717A] uppercase font-semibold mb-1.5">
-              TOP SONG
+          {/* Subtle bottom fade into the page background */}
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/70 to-transparent" />
+
+          {/* Subtle top fade under the navbar */}
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#0A0A0A]/90 to-transparent" />
+        </div>
+      </div>
+
+      {/* 2. Foreground Editorial Surface (Constrained to max-width grid) */}
+      <div className="relative z-10 w-full max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-12 sm:py-16 flex-1 flex flex-col justify-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Left Side: Editorial Typography & Actions */}
+          <div className="lg:col-span-7 flex flex-col justify-center">
+            {/* Eyebrow: Horizontal Dash + EDITORIAL SPOTLIGHT */}
+            <div className="flex items-center space-x-3 mb-5">
+              <span className="w-6 h-[1.5px] bg-[#71717A] shrink-0" />
+              <span className="text-[11px] font-mono tracking-[0.25em] text-[#8F8F8F] uppercase font-semibold">
+                EDITORIAL SPOTLIGHT
+              </span>
+            </div>
+
+            {/* Primary Heading: ARTIST NAME */}
+            <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tight text-white uppercase leading-[0.88] mb-7">
+              {displayName}
+            </h1>
+
+            {/* Label & Song title: TOP SONG */}
+            <div className="mb-4">
+              <p className="text-[10px] font-mono tracking-[0.22em] text-[#71717A] uppercase font-semibold mb-1.5">
+                TOP SONG
+              </p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-snug">
+                {heroTrack.title}
+              </p>
+            </div>
+
+            {/* One short description only */}
+            <p className="text-sm sm:text-base text-[#A1A1A6] max-w-md leading-relaxed mb-8">
+              {shortDescription}
             </p>
-            <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-snug">
-              {heroTrack.title}
-            </p>
-          </div>
 
-          {/* 5. One short description only */}
-          <p className="text-sm sm:text-base text-[#A1A1A6] max-w-md leading-relaxed mb-8">
-            {shortDescription}
-          </p>
+            {/* Actions: Play & Explore Artist */}
+            <div className="flex items-center gap-4 sm:gap-5">
+              {/* Primary Action: Play */}
+              <button
+                type="button"
+                onClick={handlePlayHeroTrack}
+                aria-label={isCurrentlyPlaying ? 'Pause' : `Play ${heroTrack.title}`}
+                className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_4px_24px_rgba(255,255,255,0.22)]"
+              >
+                {isCurrentlyPlaying ? (
+                  <>
+                    <Pause className="w-4 h-4 fill-black text-black" />
+                    <span>PAUSE</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+                    <span>PLAY</span>
+                  </>
+                )}
+              </button>
 
-          {/* 6. Actions: Play & Explore Artist */}
-          <div className="flex items-center gap-4 sm:gap-5">
-            {/* Primary Action: Play */}
+              {/* Secondary Action: Explore Artist */}
+              <Link
+                href={`/artist/${encodeURIComponent(heroArtist.id)}`}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-white text-xs font-semibold tracking-wide border border-white/[0.1] hover:border-white/20 transition-all active:scale-[0.98]"
+              >
+                <span>Explore Artist</span>
+                <span className="text-[#A1A1A6] text-sm">→</span>
+              </Link>
+            </div>
+
+            {/* Scroll Indicator */}
             <button
               type="button"
-              onClick={handlePlayHeroTrack}
-              aria-label={isCurrentlyPlaying ? 'Pause' : `Play ${heroTrack.title}`}
-              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_4px_24px_rgba(255,255,255,0.22)]"
+              onClick={handleScrollExplore}
+              className="mt-12 sm:mt-16 flex items-center gap-2.5 text-[10px] font-mono tracking-[0.2em] text-[#71717A] hover:text-white uppercase transition-colors select-none group w-fit"
             >
-              {isCurrentlyPlaying ? (
-                <>
-                  <Pause className="w-4 h-4 fill-black text-black" />
-                  <span>PAUSE</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-black text-black ml-0.5" />
-                  <span>PLAY</span>
-                </>
-              )}
+              <span className="text-xs transition-transform group-hover:translate-y-0.5">↓</span>
+              <span>SCROLL TO EXPLORE</span>
             </button>
-
-            {/* Secondary Action: Explore Artist */}
-            <Link
-              href={`/artist/${encodeURIComponent(heroArtist.id)}`}
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-white text-xs font-semibold tracking-wide border border-white/[0.1] hover:border-white/20 transition-all active:scale-[0.98]"
-            >
-              <span>Explore Artist</span>
-              <span className="text-[#A1A1A6] text-sm">→</span>
-            </Link>
           </div>
 
-          {/* 7. Subtle scroll to explore prompt */}
-          <button
-            type="button"
-            onClick={handleScrollExplore}
-            className="mt-12 sm:mt-16 flex items-center gap-2.5 text-[10px] font-mono tracking-[0.2em] text-[#71717A] hover:text-white uppercase transition-colors select-none group w-fit"
-          >
-            <span className="text-xs transition-transform group-hover:translate-y-0.5">↓</span>
-            <span>SCROLL TO EXPLORE</span>
-          </button>
-        </div>
-
-        {/* Right Side: Clearly visible Artist Image & Street Graphic Overlay */}
-        <div className="order-1 lg:order-2 lg:col-span-5 relative w-full flex justify-center lg:justify-end">
-          <div className="relative w-full max-w-[480px] h-[360px] sm:h-[440px] lg:h-[500px] rounded-2xl overflow-hidden bg-[#101012] border border-white/[0.08] shadow-2xl group">
-            <Image
-              src={heroImageSrc}
-              alt={heroArtist.name}
-              fill
-              priority
-              quality={88}
-              sizes="(max-width: 1024px) 100vw, 45vw"
-              className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
-            />
-
-            {/* Subtle LEFT-side black gradient to blend the image into the page */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 w-2/5 bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/40 to-transparent pointer-events-none"
-            />
-
-            {/* Subtle bottom gradient to blend bottom edge into dark surface */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-[#0A0A0A] to-transparent pointer-events-none"
-            />
-
-            {/* Street Art Graffiti Overlay on Right: Crown + MUMBAI STILL RAPS */}
-            <div
-              aria-hidden="true"
-              className="absolute top-8 right-6 z-10 text-right pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-opacity duration-500"
-            >
-              {/* Stylized 3-point street crown */}
+          {/* Right Side: Street Art Graffiti & Signature Quote Overlay */}
+          <div className="hidden lg:flex lg:col-span-5 flex-col justify-between h-[420px] xl:h-[480px] pointer-events-none select-none text-right pr-2">
+            {/* Top Right: Stylized Street Crown + MUMBAI STILL RAPS */}
+            <div className="opacity-80 transition-opacity duration-500">
               <svg
                 className="w-10 h-7 ml-auto text-white/70 mb-1"
                 viewBox="0 0 40 28"
@@ -202,11 +201,8 @@ export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroP
               </p>
             </div>
 
-            {/* Signature Street Quote at Bottom Right */}
-            <div
-              aria-hidden="true"
-              className="absolute bottom-6 right-6 z-10 text-right pointer-events-none select-none"
-            >
+            {/* Bottom Right: Signature Quote */}
+            <div className="text-right">
               <p className="text-[10px] font-mono tracking-[0.2em] text-white/70 uppercase">
                 &ldquo;REAL STORIES.
               </p>
