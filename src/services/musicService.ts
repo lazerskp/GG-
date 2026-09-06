@@ -35,31 +35,11 @@ class ProductionMusicService implements IMusicService {
   async getHeroFeaturedTrack(): Promise<{ artist: Artist; song: Song } | null> {
     if (typeof window === 'undefined') {
       try {
-        const { insforgeRepo } = await import('@/server/insforge/repository');
-        const rawArtists = await insforgeRepo.getArtists();
-        const artists = deduplicateArtists(rawArtists);
-        const preferredSlugs = ['divine', 'krsna', 'kr-na', 'seedhe-maut', 'hanumankind'];
-        const heroArtist = artists.find(
-          (a) =>
-            preferredSlugs.includes(a.id.toLowerCase().trim()) ||
-            preferredSlugs.includes(a.name.toLowerCase().trim())
-        );
-
-        if (heroArtist) {
-          const songs = await insforgeRepo.getSongs({ artist_id: heroArtist.id });
-          if (songs && songs.length > 0) {
-            return { artist: heroArtist, song: songs[0] };
-          }
-        }
-      } catch {
-        // Fall through
-      }
-
-      // Canonical Desi Hip-Hop editorial spotlight: DIVINE — 3:59 AM
-      try {
         const { INDIAN_ARTISTS, INDIAN_TRACKS } = await import('@/data/fixtures/indianRap');
-        if (INDIAN_ARTISTS.length > 0 && INDIAN_TRACKS.length > 0) {
-          return { artist: INDIAN_ARTISTS[0], song: INDIAN_TRACKS[0] };
+        const divineArtist = INDIAN_ARTISTS.find((a) => a.id === 'divine') || INDIAN_ARTISTS[0];
+        const divineTrack = INDIAN_TRACKS.find((t) => t.title.toLowerCase().includes('3:59')) || INDIAN_TRACKS[0];
+        if (divineArtist && divineTrack) {
+          return { artist: divineArtist, song: divineTrack };
         }
       } catch {
         // Fall through

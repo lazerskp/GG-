@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Play, Pause, ArrowDown } from 'lucide-react';
+import Link from 'next/link';
+import { Play, Pause } from 'lucide-react';
 import { Artist, Song } from '@/types/music';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { getHighResArtwork } from '@/utils/artworkQuality';
@@ -16,28 +17,28 @@ interface IndianRapHeroProps {
 export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroProps) {
   const { currentTrack, isPlaying, playbackStatus, playTrack, togglePlay } = usePlayerStore();
 
-  // Fallback real artist & song to guarantee data integrity if upstream passes null
+  // Canonical Desi Hip-Hop spotlight: DIVINE — 3:59 AM
   const heroArtist: Artist = artist || {
-    id: 'kr-na',
-    name: 'KR$NA',
-    bio: 'One of the sharpest pen games in Desi Hip-Hop, renowned for intricate rhyme schemes and pioneering Hindi rap lyricism.',
-    imageUrl: 'https://yt3.ggpht.com/ytc/AIdro_n00p_ZePoxDQQ9m1fOAv5f6CPy-GyG97eU5hKHI3wX5cM=w2880-h1200-l90-rj-dcIXaUDKoH',
+    id: 'divine',
+    name: 'DIVINE',
+    bio: 'Pioneered the Mumbai gully rap revolution.',
+    imageUrl: 'https://lh3.googleusercontent.com/RaYF_XJtrT829WF9RNApYYC6Pd9plxjNHwvUVQoGZDFLNe9bixlQdlmHSIy0CT-S96JAC4ARXgm5nsz5=w1200-h1200-l90-rj',
     region: 'india',
-    monthlyListeners: '',
-    genres: ['Desi Hip-Hop', 'Indian Rap'],
+    monthlyListeners: '7.8M',
+    genres: ['Desi Hip-Hop', 'Gully Rap', 'Boom Bap'],
     verified: true,
   };
 
   const heroTrack: Song = track || {
-    id: 'fSwe7XoAi2g',
-    title: 'Makasam',
-    artist: 'KR$NA',
-    artistId: 'kr-na',
-    artworkUrl: 'https://i.ytimg.com/vi/fSwe7XoAi2g/maxresdefault.jpg',
-    duration: 236,
+    id: 'HmW1wIhyCng',
+    title: '3:59 AM',
+    artist: 'DIVINE',
+    artistId: 'divine',
+    artworkUrl: 'https://yt3.googleusercontent.com/ql-hSv7Guf2Be88QxjFdu_dAwPwbNuRPrTMeBV6_fgjBvj79-bwi_fpd57mB1HsxGiIB9Ln5j_zp2KdyOQ=w1200-h1200-l90-rj',
+    duration: 273,
     releaseYear: 2020,
     region: 'india',
-    genre: 'Indian Rap',
+    genre: 'Gully Rap',
   };
 
   const isCurrentTrack = currentTrack?.id === heroTrack.id;
@@ -61,10 +62,10 @@ export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroP
   const rawHeroSrc = heroArtist.imageUrl?.trim() || heroTrack.artworkUrl?.trim();
   const heroImageSrc = getHighResArtwork(rawHeroSrc);
 
-  // Concise one-sentence editorial summary without long paragraphs
+  // Concise one-sentence editorial summary
   const shortDescription = heroArtist.bio
     ? heroArtist.bio.split('. ')[0].replace(/\.$/, '') + '.'
-    : 'Pioneering the raw lyrical vanguard and defining modern Indian Hip-Hop.';
+    : 'Pioneered the Mumbai gully rap revolution.';
 
   const displayName = heroArtist.name.toLowerCase() === 'krsna' ? 'KR$NA' : heroArtist.name;
 
@@ -72,82 +73,91 @@ export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroP
     <section
       id="hero"
       aria-label="Editorial Artist Spotlight"
-      className="relative w-full pt-6 sm:pt-10 pb-12 sm:pb-16 select-none overflow-hidden"
+      className="relative w-full pt-4 sm:pt-8 pb-12 sm:pb-16 select-none overflow-hidden"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center min-h-[460px] sm:min-h-[520px]">
         {/* Left Side: Editorial Typography & Actions (occupies 58% on desktop) */}
         <div className="order-2 lg:order-1 lg:col-span-7 flex flex-col justify-center z-10">
-          {/* 1. Small eyebrow */}
-          <div className="flex items-center space-x-2.5 mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+          {/* 1. Small eyebrow: Horizontal line + EDITORIAL SPOTLIGHT */}
+          <div className="flex items-center space-x-3 mb-5">
+            <span className="w-6 h-[1.5px] bg-[#71717A] shrink-0" />
             <span className="text-[11px] font-mono tracking-[0.25em] text-[#8F8F8F] uppercase font-semibold">
               EDITORIAL SPOTLIGHT
             </span>
           </div>
 
           {/* 2. Large primary heading: ARTIST NAME */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white uppercase leading-[0.92] mb-6">
+          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tight text-white uppercase leading-[0.88] mb-7">
             {displayName}
           </h1>
 
           {/* 3. Small label & 4. Song title: TOP SONG */}
           <div className="mb-4">
-            <p className="text-[10px] font-mono tracking-[0.2em] text-[#71717A] uppercase font-semibold mb-1">
+            <p className="text-[10px] font-mono tracking-[0.22em] text-[#71717A] uppercase font-semibold mb-1.5">
               TOP SONG
             </p>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight leading-snug">
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-snug">
               {heroTrack.title}
             </p>
           </div>
 
           {/* 5. One short description only */}
-          <p className="text-sm sm:text-base text-[#A1A1A6] max-w-xl leading-relaxed mb-8">
+          <p className="text-sm sm:text-base text-[#A1A1A6] max-w-md leading-relaxed mb-8">
             {shortDescription}
           </p>
 
-          {/* 6. Actions: Play & Explore Music */}
+          {/* 6. Actions: Play & Explore Artist */}
           <div className="flex items-center gap-4 sm:gap-5">
             {/* Primary Action: Play */}
             <button
               type="button"
               onClick={handlePlayHeroTrack}
               aria-label={isCurrentlyPlaying ? 'Pause' : `Play ${heroTrack.title}`}
-              className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full bg-white text-black font-semibold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_4px_20px_rgba(255,255,255,0.18)]"
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-white text-black font-bold text-xs uppercase tracking-wider hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_4px_24px_rgba(255,255,255,0.22)]"
             >
               {isCurrentlyPlaying ? (
                 <>
                   <Pause className="w-4 h-4 fill-black text-black" />
-                  <span>Pause</span>
+                  <span>PAUSE</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-black text-black ml-0.5" />
-                  <span>Play</span>
+                  <span>PLAY</span>
                 </>
               )}
             </button>
 
-            {/* Secondary Action: Explore Music */}
-            <button
-              type="button"
-              onClick={handleScrollExplore}
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-white text-xs font-medium tracking-wide border border-white/[0.08] hover:border-white/20 transition-all active:scale-[0.98]"
+            {/* Secondary Action: Explore Artist */}
+            <Link
+              href={`/artist/${encodeURIComponent(heroArtist.id)}`}
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] text-white text-xs font-semibold tracking-wide border border-white/[0.1] hover:border-white/20 transition-all active:scale-[0.98]"
             >
-              <span>Explore Music</span>
-              <ArrowDown className="w-3.5 h-3.5 text-[#8F8F8F]" />
-            </button>
+              <span>Explore Artist</span>
+              <span className="text-[#A1A1A6] text-sm">→</span>
+            </Link>
           </div>
+
+          {/* 7. Subtle scroll to explore prompt */}
+          <button
+            type="button"
+            onClick={handleScrollExplore}
+            className="mt-12 sm:mt-16 flex items-center gap-2.5 text-[10px] font-mono tracking-[0.2em] text-[#71717A] hover:text-white uppercase transition-colors select-none group w-fit"
+          >
+            <span className="text-xs transition-transform group-hover:translate-y-0.5">↓</span>
+            <span>SCROLL TO EXPLORE</span>
+          </button>
         </div>
 
-        {/* Right Side: Clearly visible Artist Image (occupies ~42% on desktop) */}
+        {/* Right Side: Clearly visible Artist Image & Street Graphic Overlay */}
         <div className="order-1 lg:order-2 lg:col-span-5 relative w-full flex justify-center lg:justify-end">
-          <div className="relative w-full max-w-[460px] h-[340px] sm:h-[420px] lg:h-[480px] rounded-2xl overflow-hidden bg-[#121214] border border-white/[0.08] shadow-2xl group">
+          <div className="relative w-full max-w-[480px] h-[360px] sm:h-[440px] lg:h-[500px] rounded-2xl overflow-hidden bg-[#101012] border border-white/[0.08] shadow-2xl group">
             <Image
               src={heroImageSrc}
               alt={heroArtist.name}
               fill
               priority
-              quality={85}
+              quality={88}
               sizes="(max-width: 1024px) 100vw, 45vw"
               className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
             />
@@ -163,6 +173,52 @@ export function IndianRapHero({ artist, track, playlistContext }: IndianRapHeroP
               aria-hidden="true"
               className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-[#0A0A0A] to-transparent pointer-events-none"
             />
+
+            {/* Street Art Graffiti Overlay on Right: Crown + MUMBAI STILL RAPS */}
+            <div
+              aria-hidden="true"
+              className="absolute top-8 right-6 z-10 text-right pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+            >
+              {/* Stylized 3-point street crown */}
+              <svg
+                className="w-10 h-7 ml-auto text-white/70 mb-1"
+                viewBox="0 0 40 28"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 24L7 8L16 16L20 4L24 16L33 8L36 24H4Z" />
+              </svg>
+              <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-white/85 uppercase leading-none font-mono">
+                MUMBAI
+              </p>
+              <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-white/85 uppercase leading-none font-mono">
+                STILL
+              </p>
+              <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-white/85 uppercase leading-none font-mono">
+                RAPS
+              </p>
+            </div>
+
+            {/* Signature Street Quote at Bottom Right */}
+            <div
+              aria-hidden="true"
+              className="absolute bottom-6 right-6 z-10 text-right pointer-events-none select-none"
+            >
+              <p className="text-[10px] font-mono tracking-[0.2em] text-white/70 uppercase">
+                &ldquo;REAL STORIES.
+              </p>
+              <p className="text-[10px] font-mono tracking-[0.2em] text-white/70 uppercase">
+                REAL STREETS.&rdquo;
+              </p>
+              <div className="flex items-center justify-end gap-1.5 mt-1 text-[9px] font-mono tracking-widest text-[#8F8F8F]">
+                <span>—</span>
+                <span>DIVINE</span>
+                <span>—</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
