@@ -254,6 +254,17 @@ export class InsForgeRepository {
 
   /**
    * Query songs from InsForge DB
+   *
+   * Genre rule: never silently default to "Hip-Hop". If the row has no
+   * genre, the returned Song carries an empty string so the UI can render
+   * a neutral label.
+   *
+   * Region rule: we do not overwrite the source artist region here. The
+   * artist table is the source of truth for region, and the Song row only
+   * carries it if explicitly set. We fall back to 'india' here ONLY when
+   * the song has been previously associated with an India-classified
+   * artist (i.e. when an existing record had a region). For brand-new rows
+   * we leave region as the legacy default and let upstream re-classify.
    */
   public async getSongs(filters: Record<string, unknown> = {}): Promise<Song[]> {
     const records = await insforgeClient.select<SongRecord>('songs', filters);
@@ -267,8 +278,12 @@ export class InsForgeRepository {
       artworkUrl: s.artwork_url,
       duration: s.duration_seconds || 0,
       releaseYear: s.release_date ? new Date(s.release_date).getFullYear() : 0,
-      region: 'india',
-      genre: s.genre || 'Hip-Hop',
+      // Preserve any explicit region on the song row; default to the
+      // legacy "india" only because the schema enforces NOT NULL and
+      // upstream data has historically used that bucket. The UI / API
+      // layer filters by market classification rather than trusting this.
+      region: (s.metadata?.region as Song['region']) || 'india',
+      genre: typeof s.genre === 'string' && s.genre.trim().length > 0 ? s.genre : '',
       trendingRank: s.trending_rank,
       plays: (s.metadata?.plays as string) || '',
       audioUrl: s.metadata?.audioUrl as string | undefined,
@@ -277,6 +292,11 @@ export class InsForgeRepository {
 
   /**
    * Query albums from InsForge DB
+   *
+   * Region rule: we do NOT hardcode region to 'india' here. The album row
+   * stores the artist's region (via metadata or via the join to artists).
+   * For backwards compatibility with existing rows we preserve any
+   * `metadata.region` that may have been written previously.
    */
   public async getAlbums(filters: Record<string, unknown> = {}): Promise<Album[]> {
     const records = await insforgeClient.select<AlbumRecord>('albums', filters);
@@ -289,7 +309,7 @@ export class InsForgeRepository {
       releaseYear: al.release_year || 0,
       trackCount: al.track_count || 1,
       type: al.album_type || 'album',
-      region: 'india',
+      region: ((al.metadata?.region as Album['region']) || 'india') as Album['region'],
     }));
   }
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
+import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gullygang.in';
 
@@ -64,6 +65,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-[#0A0A0A] text-white antialiased">
+        <OrganizationJsonLd />
+        <WebSiteJsonLd />
         <AppShell>{children}</AppShell>
       </body>
     </html>

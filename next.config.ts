@@ -48,6 +48,20 @@ const nextConfig: NextConfig = {
     // Tree-shake icon & state library imports so only used glyphs ship in the client bundle.
     optimizePackageImports: ['lucide-react', 'zustand'],
   },
+  async redirects() {
+    return [
+      {
+        source: '/discover',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/new-releases',
+        destination: '/albums',
+        permanent: true,
+      },
+    ];
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],

@@ -24,14 +24,17 @@ export function Footer() {
             <Link href="/" className="hover:text-white transition-colors">
               Discover
             </Link>
-            <Link href="/#artists" className="hover:text-white transition-colors">
+            <Link href="/artists" className="hover:text-white transition-colors">
               Artists
             </Link>
-            <Link href="/#new-releases" className="hover:text-white transition-colors">
-              New Releases
+            <Link href="/albums" className="hover:text-white transition-colors">
+              Albums
             </Link>
             <Link href="/charts" className="hover:text-white transition-colors font-semibold text-white">
               Charts
+            </Link>
+            <Link href="/blog" className="hover:text-white transition-colors">
+              Blog & Editorial
             </Link>
             <span className="text-[#333] hidden sm:inline">|</span>
             <Link href="/about" className="hover:text-white transition-colors">

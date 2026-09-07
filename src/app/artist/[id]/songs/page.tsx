@@ -23,6 +23,9 @@ export async function generateMetadata({ params }: ArtistSongsPageProps): Promis
   return {
     title: `All Songs — ${data.artist.name} | GULLYGANG Catalog`,
     description: `Browse all tracks, singles, and discography for ${data.artist.name} on GULLYGANG.`,
+    alternates: {
+      canonical: `/artist/${id}/songs`,
+    },
   };
 }
 

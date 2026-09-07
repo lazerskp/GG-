@@ -7,20 +7,25 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: [
-          '/',
-          '/about',
-          '/privacy',
-          '/copyright',
-          '/charts',
-          '/artist/',
-          '/album/',
-        ],
+        allow: '/',
         disallow: [
           '/api/',
+          '/health',
+          '/*?',
+        ],
+      },
+      {
+        userAgent: 'Googlebot',
+        allow: '/',
+        disallow: [
+          '/api/',
+          '/health',
         ],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: [
+      `${siteUrl}/sitemap.xml`,
+    ],
+    host: siteUrl,
   };
 }

@@ -9,6 +9,9 @@ import { GlobalRapSection } from '@/components/home/GlobalRapSection';
 import { NewReleases } from '@/components/home/NewReleases';
 import { ExploreGenres } from '@/components/home/ExploreGenres';
 import { QuickSearch } from '@/components/home/QuickSearch';
+import { EditorialSpotlight } from '@/components/home/EditorialSpotlight';
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://gullygang.in').replace(/\/$/, '');
 
 export const metadata = {
   title: 'GULLYGANG — Music Discovery & Immersive Listening',
@@ -18,7 +21,7 @@ export const metadata = {
     description: 'Discover trending music across Indian rap, Hindi, Odia, Bollywood, and global catalogs with immersive playback and real-time lyrics.',
     siteName: 'GULLYGANG',
     type: 'website' as const,
-    url: '/',
+    url: `${SITE_URL}/`,
   },
   twitter: {
     card: 'summary_large_image' as const,
@@ -26,7 +29,7 @@ export const metadata = {
     description: 'Discover trending music with immersive playback and real-time lyrics.',
   },
   alternates: {
-    canonical: '/',
+    canonical: `${SITE_URL}/`,
   },
 };
 
@@ -100,10 +103,13 @@ export default async function HomePage() {
         <GlobalRapSectionAsync />
       </Suspense>
 
-      {/* 7. Explore Styles */}
+      {/* 7. Scene Reports & Editorial Spotlight */}
+      <EditorialSpotlight />
+
+      {/* 8. Explore Styles */}
       <ExploreGenres />
 
-      {/* 8. Quick Search */}
+      {/* 9. Quick Search */}
       <QuickSearch />
     </div>
   );

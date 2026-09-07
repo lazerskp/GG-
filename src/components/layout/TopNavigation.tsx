@@ -280,13 +280,13 @@ export function TopNavigation() {
                 Discover
               </Link>
               <Link
-                href="/#new-releases"
+                href="/albums"
                 className="text-[#A1A1A6] hover:text-white transition-colors duration-200"
               >
-                New Releases
+                Albums
               </Link>
               <Link
-                href="/#artists"
+                href="/artists"
                 className="text-[#A1A1A6] hover:text-white transition-colors duration-200"
               >
                 Artists
@@ -297,17 +297,22 @@ export function TopNavigation() {
               >
                 Charts
               </Link>
+              <Link
+                href="/blog"
+                className="text-[#A1A1A6] hover:text-white transition-colors duration-200"
+              >
+                Editorial
+              </Link>
             </nav>
           </div>
 
           {/* 2. Center/Right: Sleek Search Experience */}
           <div ref={containerRef} className="hidden md:block flex-1 max-w-md relative">
             <div
-              className={`relative flex items-center w-full h-10 px-4 rounded-full transition-all duration-200 ${
-                isFocused
+              className={`relative flex items-center w-full h-10 px-4 rounded-full transition-all duration-200 ${isFocused
                   ? 'bg-white/[0.08] border border-white/20 shadow-[0_4px_24px_rgba(0,0,0,0.6)]'
                   : 'bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12]'
-              }`}
+                }`}
             >
               <Search className="w-4 h-4 text-[#A1A1A1] shrink-0 mr-3" />
               <input
@@ -379,11 +384,10 @@ export function TopNavigation() {
                             id="search-item-top-result"
                             href={`/artist/${results.topResult.item.id}`}
                             onClick={() => setIsFocused(false)}
-                            className={`flex items-center space-x-4 p-3 rounded-xl transition-all duration-150 group ${
-                              navigableItems[selectedIndex]?.id === 'top-result'
+                            className={`flex items-center space-x-4 p-3 rounded-xl transition-all duration-150 group ${navigableItems[selectedIndex]?.id === 'top-result'
                                 ? 'bg-white/[0.12] ring-1 ring-white/20'
                                 : 'hover:bg-white/[0.06]'
-                            }`}
+                              }`}
                           >
                             <div className="relative w-14 h-14 rounded-full overflow-hidden bg-[#1C1C1C] shrink-0 border border-white/15">
                               <Image
@@ -415,11 +419,10 @@ export function TopNavigation() {
                               playTrack(results.topResult!.item, results.songs);
                               setIsFocused(false);
                             }}
-                            className={`flex items-center justify-between p-3 rounded-xl transition-all duration-150 cursor-pointer group ${
-                              navigableItems[selectedIndex]?.id === 'top-result'
+                            className={`flex items-center justify-between p-3 rounded-xl transition-all duration-150 cursor-pointer group ${navigableItems[selectedIndex]?.id === 'top-result'
                                 ? 'bg-white/[0.12] ring-1 ring-white/20'
                                 : 'hover:bg-white/[0.06]'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center space-x-4 min-w-0">
                               <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-[#1C1C1C] shrink-0 border border-white/15">
@@ -458,11 +461,10 @@ export function TopNavigation() {
                             id="search-item-top-result"
                             href={`/album/${results.topResult.item.id}`}
                             onClick={() => setIsFocused(false)}
-                            className={`flex items-center space-x-4 p-3 rounded-xl transition-all duration-150 group ${
-                              navigableItems[selectedIndex]?.id === 'top-result'
+                            className={`flex items-center space-x-4 p-3 rounded-xl transition-all duration-150 group ${navigableItems[selectedIndex]?.id === 'top-result'
                                 ? 'bg-white/[0.12] ring-1 ring-white/20'
                                 : 'hover:bg-white/[0.06]'
-                            }`}
+                              }`}
                           >
                             <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-[#1C1C1C] shrink-0 border border-white/15">
                               <Image
@@ -516,13 +518,12 @@ export function TopNavigation() {
                                     playTrack(song, results.songs);
                                   }
                                 }}
-                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-150 group ${
-                                  isNavSelected
+                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-150 group ${isNavSelected
                                     ? 'bg-white/[0.12] ring-1 ring-white/20'
                                     : isCurrent
-                                    ? 'bg-white/[0.08]'
-                                    : 'hover:bg-white/[0.04]'
-                                }`}
+                                      ? 'bg-white/[0.08]'
+                                      : 'hover:bg-white/[0.04]'
+                                  }`}
                               >
                                 <div className="flex items-center space-x-3 min-w-0">
                                   <div className="relative w-9 h-9 rounded overflow-hidden bg-[#1C1C1C] shrink-0 border border-white/[0.06]">
@@ -534,9 +535,8 @@ export function TopNavigation() {
                                       sizes="36px"
                                     />
                                     <div
-                                      className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
-                                        isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                      }`}
+                                      className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                        }`}
                                     >
                                       {isTrackPlaying ? (
                                         <Pause className="w-3 h-3 text-white" />
@@ -547,9 +547,8 @@ export function TopNavigation() {
                                   </div>
                                   <div className="min-w-0">
                                     <p
-                                      className={`text-xs font-semibold truncate ${
-                                        isCurrent ? 'text-white' : 'text-[#E5E5E5]'
-                                      }`}
+                                      className={`text-xs font-semibold truncate ${isCurrent ? 'text-white' : 'text-[#E5E5E5]'
+                                        }`}
                                     >
                                       {song.title}
                                     </p>
@@ -609,11 +608,10 @@ export function TopNavigation() {
                                 id={`search-item-artist-${artist.id}`}
                                 href={`/artist/${artist.id}`}
                                 onClick={() => setIsFocused(false)}
-                                className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-150 group ${
-                                  isNavSelected
+                                className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-150 group ${isNavSelected
                                     ? 'bg-white/[0.12] ring-1 ring-white/20'
                                     : 'hover:bg-white/[0.04]'
-                                }`}
+                                  }`}
                               >
                                 <div className="relative w-9 h-9 rounded-full overflow-hidden bg-[#1C1C1C] shrink-0 border border-white/[0.08]">
                                   <Image
@@ -658,11 +656,10 @@ export function TopNavigation() {
                                 id={`search-item-album-${album.id}`}
                                 href={`/album/${album.id}`}
                                 onClick={() => setIsFocused(false)}
-                                className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-150 group ${
-                                  isNavSelected
+                                className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-150 group ${isNavSelected
                                     ? 'bg-white/[0.12] ring-1 ring-white/20'
                                     : 'hover:bg-white/[0.04]'
-                                }`}
+                                  }`}
                               >
                                 <div className="relative w-9 h-9 rounded overflow-hidden bg-[#1C1C1C] shrink-0 border border-white/[0.06]">
                                   <Image
@@ -709,11 +706,10 @@ export function TopNavigation() {
                                   playTrack(video, results.videos);
                                   setIsFocused(false);
                                 }}
-                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-150 group ${
-                                  isNavSelected
+                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-150 group ${isNavSelected
                                     ? 'bg-white/[0.12] ring-1 ring-white/20'
                                     : 'hover:bg-white/[0.04]'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex items-center space-x-3 min-w-0">
                                   <div className="relative w-12 h-8 rounded overflow-hidden bg-[#1C1C1C] shrink-0 border border-white/[0.06]">
