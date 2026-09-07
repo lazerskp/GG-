@@ -1,4 +1,3 @@
-import 'server-only';
 
 /**
  * Python Music Metadata Microservice Client
@@ -24,13 +23,20 @@ import {
   getDevGlobalTracks,
   getDevGlobalAlbums,
 } from '@/data/fixtures';
+import {
+  classifyMarket,
+  legacyRegionToMarket,
+  marketToLegacyRegion,
+  normalizeGenres,
+  type Market,
+} from '@/utils/musicClassification';
 
 interface PythonArtist {
   id: string;
   name: string;
   description?: string;
   image: string;
-  region?: 'india' | 'global';
+  region?: 'india' | 'global' | string;
   monthly_listeners?: string;
   genres?: string[];
   verified?: boolean;
@@ -41,12 +47,13 @@ interface PythonSong {
   title: string;
   artist: string;
   artist_id?: string;
+  artists?: Array<{ name?: string; id?: string }>;
   album?: string;
   album_id?: string;
   artwork: string;
   duration?: number;
   release_year?: number;
-  region?: 'india' | 'global';
+  region?: 'india' | 'global' | string;
   genre?: string;
 }
 
@@ -123,6 +130,114 @@ export interface PythonLyricsResponse {
   provider: string;
 }
 
+/**
+ * Classify an artist payload from the upstream Python service into the
+ * internal Market taxonomy. Falls back to keyword + name heuristics when
+ * the upstream region is missing or untrusted.
+ */
+function classifyPythonArtist(raw: {
+  name?: string;
+  description?: string;
+  region?: string | null;
+}): Market {
+  return classifyMarket({
+    name: raw.name,
+    description: raw.description,
+    providerRegion: raw.region,
+  });
+}
+
+/**
+ * Map a Market value to the legacy 'india' | 'global' Region enum.
+ * Returns 'india' for INDIAN and DESI, 'global' for everything else.
+ */
+function marketForLegacyEnum(market: Market): 'india' | 'global' {
+  return marketToLegacyRegion(market);
+}
+
+/**
+ * Map a Market to the strict 'INDIAN' | 'DESI' | 'GLOBAL' | 'UNKNOWN' taxonomy.
+ * Unknown artists get an empty region string so downstream code never
+ * silently buckets them into India.
+ */
+function marketLabel(market: Market): 'INDIAN' | 'DESI' | 'GLOBAL' | 'UNKNOWN' {
+  return market;
+}
+
+function mapArtist(raw: PythonArtist): Artist {
+  const market = classifyPythonArtist(raw);
+  const genres = normalizeGenres(raw.genres);
+  return {
+    id: raw.id,
+    name: raw.name,
+    moniker: '',
+    bio: raw.description || '',
+    imageUrl: raw.image,
+    region: marketForLegacyEnum(market),
+    monthlyListeners: raw.monthly_listeners || '',
+    genres,
+    verified: raw.verified ?? false,
+  };
+}
+
+function mapSong(raw: PythonSong, fallbackArtistMarket: Market | null = null): Song {
+  // Classify the song's market: prefer the song's own region, then the
+  // artist market, then the song's artist name, then UNKNOWN.
+  let market: Market;
+  if (raw.region) {
+    market = legacyRegionToMarket(raw.region);
+  } else if (fallbackArtistMarket) {
+    market = fallbackArtistMarket;
+  } else if (raw.artist) {
+    market = classifyMarket({ name: raw.artist });
+  } else {
+    market = 'UNKNOWN';
+  }
+  const genres = normalizeGenres(raw.genre);
+  const artistCredits = Array.isArray(raw.artists)
+    ? raw.artists
+      .map((a) => (a && typeof a.name === 'string' ? a.name.trim() : ''))
+      .filter((n) => n.length > 0)
+    : [];
+  const isVariousArtists = /^various\s*artists?$/i.test(raw.artist?.trim() || '');
+  return {
+    id: raw.id,
+    title: raw.title,
+    artist: raw.artist,
+    artistId: raw.artist_id || '',
+    artistCredits: artistCredits.length > 0 ? artistCredits : undefined,
+    isVariousArtists,
+    album: raw.album,
+    albumId: raw.album_id,
+    artworkUrl: raw.artwork,
+    duration: raw.duration || 0,
+    releaseYear: raw.release_year || 0,
+    region: marketForLegacyEnum(market),
+    genre: genres[0] || '',
+  };
+}
+
+function mapAlbum(raw: PythonAlbum, fallbackArtistMarket: Market | null = null): Album {
+  let market: Market;
+  if (raw.artist_id) {
+    market = fallbackArtistMarket || classifyMarket({ name: raw.artist });
+  } else {
+    market = classifyMarket({ name: raw.artist });
+  }
+  return {
+    id: raw.id,
+    title: raw.title,
+    artist: raw.artist,
+    artistId: raw.artist_id || '',
+    artworkUrl: raw.artwork,
+    releaseYear: raw.release_year || 0,
+    trackCount: raw.track_count || 0,
+    type: (raw.album_type || 'album') as Album['type'],
+    region: marketForLegacyEnum(market),
+    tracks: (raw.tracks || []).map((t) => mapSong(t, market)),
+  };
+}
+
 export class PythonMetadataClient {
   private get baseUrl(): string {
     return serverConfig.musicServiceUrl.replace(/\/$/, '');
@@ -191,46 +306,17 @@ export class PythonMetadataClient {
         if (data.topResult.type === 'artist') {
           mappedTopResult = {
             type: 'artist',
-            item: {
-              id: item.id,
-              name: item.name,
-              bio: item.description || '',
-              imageUrl: item.image,
-              region: item.region || 'india',
-              monthlyListeners: item.monthly_listeners || '',
-              genres: item.genres || [],
-              verified: item.verified ?? false,
-            },
+            item: mapArtist(item as PythonArtist),
           };
         } else if (data.topResult.type === 'song') {
           mappedTopResult = {
             type: 'song',
-            item: {
-              id: item.id,
-              title: item.title,
-              artist: item.artist,
-              artistId: item.artist_id || '',
-              artworkUrl: item.artwork,
-              duration: item.duration || 0,
-              releaseYear: item.release_year || 0,
-              region: item.region || 'india',
-              genre: item.genre || '',
-            },
+            item: mapSong(item as PythonSong),
           };
         } else if (data.topResult.type === 'album') {
           mappedTopResult = {
             type: 'album',
-            item: {
-              id: item.id,
-              title: item.title,
-              artist: item.artist,
-              artistId: item.artist_id || '',
-              artworkUrl: item.artwork,
-              releaseYear: item.release_year || 0,
-              trackCount: item.track_count || 0,
-              type: item.album_type || 'album',
-              region: 'india',
-            },
+            item: mapAlbum(item as PythonAlbum),
           };
         }
       }
@@ -238,49 +324,10 @@ export class PythonMetadataClient {
       return {
         query,
         topResult: mappedTopResult,
-        artists: (data.artists || []).map((a) => ({
-          id: a.id,
-          name: a.name,
-          bio: a.description || '',
-          imageUrl: a.image,
-          region: a.region || 'india',
-          monthlyListeners: a.monthly_listeners || '',
-          genres: a.genres || [],
-          verified: a.verified ?? false,
-        })),
-        songs: (data.songs || []).map((s) => ({
-          id: s.id,
-          title: s.title,
-          artist: s.artist,
-          artistId: s.artist_id || '',
-          artworkUrl: s.artwork,
-          duration: s.duration || 0,
-          releaseYear: s.release_year || 0,
-          region: s.region || 'india',
-          genre: s.genre || '',
-        })),
-        albums: (data.albums || []).map((al) => ({
-          id: al.id,
-          title: al.title,
-          artist: al.artist,
-          artistId: al.artist_id || '',
-          artworkUrl: al.artwork,
-          releaseYear: al.release_year || 0,
-          trackCount: al.track_count || 0,
-          type: al.album_type || 'album',
-          region: 'india',
-        })),
-        videos: (data.videos || []).map((v) => ({
-          id: v.id,
-          title: v.title,
-          artist: v.artist,
-          artistId: v.artist_id || '',
-          artworkUrl: v.artwork,
-          duration: v.duration || 0,
-          releaseYear: v.release_year || 0,
-          region: v.region || 'india',
-          genre: v.genre || '',
-        })),
+        artists: (data.artists || []).map(mapArtist),
+        songs: (data.songs || []).map((s) => mapSong(s)),
+        albums: (data.albums || []).map((al) => mapAlbum(al)),
+        videos: (data.videos || []).map((v) => mapSong(v)),
         serviceStatus: 'ok',
       };
     }
@@ -355,16 +402,7 @@ export class PythonMetadataClient {
   public async getArtist(id: string): Promise<Artist | null> {
     const data = await this.fetchFromService<PythonArtist>(`/api/v1/metadata/artists/${id}`);
     if (data) {
-      return {
-        id: data.id,
-        name: data.name,
-        bio: data.description || '',
-        imageUrl: data.image,
-        region: data.region || 'india',
-        monthlyListeners: data.monthly_listeners || '',
-        genres: data.genres || [],
-        verified: data.verified ?? false,
-      };
+      return mapArtist(data);
     }
 
     if (serverConfig.useDevFixtures) {
@@ -384,63 +422,14 @@ export class PythonMetadataClient {
     );
 
     if (data && data.artist) {
-      const artistRegion = data.artist.region || 'india';
+      const artist = mapArtist(data.artist);
+      const artistMarket = classifyPythonArtist(data.artist);
       return {
-        artist: {
-          id: data.artist.id,
-          name: data.artist.name,
-          bio: data.artist.description || '',
-          imageUrl: data.artist.image,
-          region: artistRegion,
-          monthlyListeners: data.artist.monthly_listeners || '',
-          genres: data.artist.genres || [],
-          verified: data.artist.verified ?? false,
-        },
-        topSongs: (data.topSongs || []).map((s) => ({
-          id: s.id,
-          title: s.title,
-          artist: s.artist,
-          artistId: s.artist_id || '',
-          album: s.album || undefined,
-          albumId: s.album_id || undefined,
-          artworkUrl: s.artwork,
-          duration: s.duration || 0,
-          releaseYear: s.release_year || 0,
-          region: s.region || artistRegion,
-          genre: s.genre || '',
-        })),
-        newReleases: (data.newReleases || []).map((al) => ({
-          id: al.id,
-          title: al.title,
-          artist: al.artist,
-          artistId: al.artist_id || '',
-          artworkUrl: al.artwork,
-          releaseYear: al.release_year || 0,
-          trackCount: al.track_count || 0,
-          type: (al.album_type || 'single') as Album['type'],
-          region: artistRegion,
-        })),
-        topAlbums: (data.topAlbums || []).map((al) => ({
-          id: al.id,
-          title: al.title,
-          artist: al.artist,
-          artistId: al.artist_id || '',
-          artworkUrl: al.artwork,
-          releaseYear: al.release_year || 0,
-          trackCount: al.track_count || 0,
-          type: (al.album_type || 'album') as Album['type'],
-          region: artistRegion,
-        })),
-        relatedArtists: (data.relatedArtists || []).map((a) => ({
-          id: a.id,
-          name: a.name,
-          bio: a.description || '',
-          imageUrl: a.image,
-          region: a.region || 'india',
-          monthlyListeners: a.monthly_listeners || '',
-          genres: a.genres || [],
-          verified: a.verified ?? false,
-        })),
+        artist,
+        topSongs: (data.topSongs || []).map((s) => mapSong(s, artistMarket)),
+        newReleases: (data.newReleases || []).map((al) => mapAlbum(al, artistMarket)),
+        topAlbums: (data.topAlbums || []).map((al) => mapAlbum(al, artistMarket)),
+        relatedArtists: (data.relatedArtists || []).map(mapArtist),
         updatedAt: data.updatedAt || new Date().toISOString(),
         source: data.source || 'ytmusic_live',
       };
@@ -475,30 +464,8 @@ export class PythonMetadataClient {
   public async getAlbum(id: string): Promise<Album | null> {
     const data = await this.fetchFromService<PythonAlbum>(`/api/v1/metadata/albums/${id}`);
     if (data) {
-      return {
-        id: data.id,
-        title: data.title,
-        artist: data.artist,
-        artistId: data.artist_id || '',
-        artworkUrl: data.artwork,
-        releaseYear: data.release_year || 0,
-        trackCount: data.track_count || 0,
-        type: (data.album_type || 'album') as Album['type'],
-        region: 'india',
-        tracks: (data.tracks || []).map((s) => ({
-          id: s.id,
-          title: s.title,
-          artist: s.artist,
-          artistId: s.artist_id || '',
-          artworkUrl: s.artwork,
-          duration: s.duration || 0,
-          releaseYear: s.release_year || 0,
-          region: 'india',
-          genre: s.genre || '',
-        })),
-      };
+      return mapAlbum(data);
     }
-
     if (serverConfig.useDevFixtures) {
       const all = [...getDevIndianAlbums(), ...getDevGlobalAlbums()];
       return all.find((a) => a.id === id) || null;
@@ -513,17 +480,7 @@ export class PythonMetadataClient {
   public async getSong(id: string): Promise<Song | null> {
     const data = await this.fetchFromService<PythonSong>(`/api/v1/metadata/songs/${id}`);
     if (data) {
-      return {
-        id: data.id,
-        title: data.title,
-        artist: data.artist,
-        artistId: data.artist_id || '',
-        artworkUrl: data.artwork,
-        duration: data.duration || 0,
-        releaseYear: data.release_year || 0,
-        region: data.region || 'india',
-        genre: data.genre || '',
-      };
+      return mapSong(data);
     }
 
     if (serverConfig.useDevFixtures) {
@@ -544,31 +501,16 @@ export class PythonMetadataClient {
     );
 
     if (data && data.tracks?.length > 0) {
+      // When charts come from a regional upstream bucket, every entry is
+      // presumed to be that bucket. But the classification utilities still
+      // double-check the artist name when region is missing.
+      const bucketMarket: Market = region === 'india' ? 'INDIAN' : 'GLOBAL';
       return {
         region,
         updatedAt: data.updatedAt || new Date().toISOString(),
         source: data.source || 'ytmusic_live',
-        tracks: data.tracks.slice(0, 10).map((t) => ({
-          id: t.id,
-          title: t.title,
-          artist: t.artist,
-          artistId: t.artist_id || '',
-          artworkUrl: t.artwork,
-          duration: t.duration || 0,
-          releaseYear: t.release_year || 0,
-          region,
-          genre: t.genre || '',
-        })),
-        artists: (data.artists || []).slice(0, 10).map((a) => ({
-          id: a.id,
-          name: a.name,
-          bio: a.description || '',
-          imageUrl: a.image,
-          region,
-          monthlyListeners: a.monthly_listeners || '',
-          genres: a.genres || [],
-          verified: a.verified ?? false,
-        })),
+        tracks: data.tracks.slice(0, 10).map((t) => mapSong(t, bucketMarket)),
+        artists: (data.artists || []).slice(0, 10).map(mapArtist),
       };
     }
 
@@ -601,17 +543,7 @@ export class PythonMetadataClient {
     if (data && data.tracks && data.tracks.length > 0) {
       return {
         videoId,
-        tracks: data.tracks.map((s) => ({
-          id: s.id,
-          title: s.title,
-          artist: s.artist,
-          artistId: s.artist_id || '',
-          artworkUrl: s.artwork,
-          duration: s.duration || 0,
-          releaseYear: s.release_year || 0,
-          region: s.region || 'india',
-          genre: s.genre || '',
-        })),
+        tracks: data.tracks.map((s) => mapSong(s)),
         continuation: data.continuation || null,
       };
     }
@@ -639,17 +571,7 @@ export class PythonMetadataClient {
       const total = data.total ?? data.tracks.length;
       return {
         artistId,
-        tracks: data.tracks.map((s) => ({
-          id: s.id,
-          title: s.title,
-          artist: s.artist,
-          artistId: s.artist_id || artistId,
-          artworkUrl: s.artwork,
-          duration: s.duration || 0,
-          releaseYear: s.release_year || 0,
-          region: s.region || 'india',
-          genre: s.genre || '',
-        })),
+        tracks: data.tracks.map((s) => mapSong(s)),
         total,
         totalCount: total,
         hasMore: data.has_more ?? (total > offset + data.tracks.length),
@@ -674,4 +596,4 @@ export class PythonMetadataClient {
 }
 
 export const pythonClient = new PythonMetadataClient();
-
+export { marketLabel };

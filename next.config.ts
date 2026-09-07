@@ -55,11 +55,6 @@ const nextConfig: NextConfig = {
         destination: '/',
         permanent: true,
       },
-      {
-        source: '/new-releases',
-        destination: '/albums',
-        permanent: true,
-      },
     ];
   },
   images: {

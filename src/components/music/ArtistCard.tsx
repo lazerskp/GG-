@@ -3,10 +3,39 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Artist } from '@/types/music';
 import { getThumbnailArtwork } from '@/utils/artworkQuality';
+import {
+  legacyRegionToMarket,
+  primaryGenreLabel,
+  type Market,
+} from '@/utils/musicClassification';
 
 interface ArtistCardProps {
   artist: Artist;
   onClick?: () => void;
+}
+
+function marketLabel(market: Market | null | undefined): string | null {
+  switch (market) {
+    case 'INDIAN':
+    case 'DESI':
+      return 'Desi Hip-Hop';
+    case 'GLOBAL':
+      return 'Global Rap';
+    default:
+      return null;
+  }
+}
+
+function buildSubtitle(artist: Artist): string | null {
+  // Order: moniker → primary genre → market label. Never fall back to a
+  // fabricated genre. The UI must always show what the data actually says.
+  if (artist.moniker && artist.moniker.trim().length > 0) {
+    return artist.moniker;
+  }
+  const primary = primaryGenreLabel(artist);
+  if (primary) return primary;
+  const market = marketLabel(legacyRegionToMarket(artist.region));
+  return market;
 }
 
 export function ArtistCard({ artist, onClick }: ArtistCardProps) {
@@ -15,8 +44,7 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
     'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop';
   const avatarSrc = getThumbnailArtwork(rawAvatar, 320);
 
-  // Real metadata only: genre, moniker, or verified badge. Zero fake listener counts.
-  const subtitle = artist.moniker || (artist.genres && artist.genres.length > 0 ? artist.genres[0] : 'Hip-Hop');
+  const subtitle = buildSubtitle(artist);
 
   const content = (
     <div
@@ -41,9 +69,11 @@ export function ArtistCard({ artist, onClick }: ArtistCardProps) {
         <h3 className="text-xs sm:text-sm font-semibold text-white tracking-tight truncate group-hover:underline transition-colors">
           {artist.name}
         </h3>
-        <p className="text-[11px] text-[#8F8F8F] tracking-normal truncate">
-          {subtitle}
-        </p>
+        {subtitle ? (
+          <p className="text-[11px] text-[#8F8F8F] tracking-normal truncate">{subtitle}</p>
+        ) : (
+          <p className="text-[11px] text-[#636366] tracking-normal truncate">Artist</p>
+        )}
       </div>
     </div>
   );

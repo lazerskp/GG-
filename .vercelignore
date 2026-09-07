@@ -2,5 +2,7 @@ music-service/
 .agents/
 .augment/
 .gemini/
+.qwen/
 tests/
 db/
+*.tsbuildinfo

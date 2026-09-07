@@ -15,8 +15,28 @@ export interface Artist {
 export interface Song {
   id: string;
   title: string;
+  /**
+   * The display artist string. For single-artist tracks this is the
+   * artist's name; for compilation/remix/soundtrack tracks where the
+   * primary credit is not meaningful, this may be "Various Artists".
+   */
   artist: string;
   artistId: string;
+  /**
+   * The full ordered list of credited artists as returned by the source.
+   * `artist` and `artistId` are the primary (first) credit and remain
+   * the canonical link target. The full credit list is preserved here so
+   * detail pages and tooltips can show every contributor without losing
+   * data.
+   */
+  artistCredits?: string[];
+  /**
+   * True when the source explicitly reports a "Various Artists" credit
+   * (e.g. compilations, soundtracks, label samplers). The UI may use this
+   * to suppress primary-artist links and surface "Various Artists"
+   * instead.
+   */
+  isVariousArtists?: boolean;
   album?: string;
   albumId?: string;
   artworkUrl: string;
@@ -40,6 +60,13 @@ export interface Album {
   type: 'album' | 'ep' | 'single';
   region: Region;
   tracks?: Song[]; // populated for album detail payloads when the provider returns a tracklist
+  /**
+   * Display label for the credited primary artist. When this is true
+   * the album is a compilation / soundtrack / label sampler whose
+   * primary credit is not meaningful, and the UI should render
+   * "Various Artists" instead of a specific name.
+   */
+  isVariousArtists?: boolean;
 }
 
 export interface DailyFeatureData {

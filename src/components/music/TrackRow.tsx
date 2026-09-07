@@ -8,6 +8,7 @@ import { Song } from '@/types/music';
 import { usePlayerStore } from '@/store/usePlayerStore';
 
 import { getThumbnailArtwork } from '@/utils/artworkQuality';
+import { formatArtistLabel, formatArtistFullCredit } from '@/utils/musicClassification';
 
 interface TrackRowProps {
   track: Song;
@@ -40,14 +41,32 @@ export function TrackRow({ track, index, playlistContext }: TrackRowProps) {
   const formattedRank = String(index + 1).padStart(2, '0');
   const thumbnailSrc = getThumbnailArtwork(track.artworkUrl, 160) || 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop';
 
+  // Multi-artist display: prefer the full credits list, fall back to
+  // the primary artist string. The full credit string is preserved in
+  // the title attribute for tooltips / detail pages.
+  const allCreditNames = (track.artistCredits && track.artistCredits.length > 0)
+    ? track.artistCredits
+    : (track.artist ? [track.artist] : []);
+  const displayLabel = formatArtistLabel({
+    artists: allCreditNames,
+    primaryIsVarious: track.isVariousArtists,
+  });
+  const fullCreditTitle = formatArtistFullCredit({
+    artists: allCreditNames,
+    primaryIsVarious: track.isVariousArtists,
+  });
+
+  // Only link the primary credit when the track has a real upstream ID
+  // and is not a "Various Artists" compilation.
+  const canLinkPrimary = Boolean(track.artistId) && !track.isVariousArtists;
+
   return (
     <div
       onClick={handlePlayClick}
-      className={`group relative flex items-center justify-between px-3 sm:px-4 py-3 rounded-lg transition-colors duration-150 cursor-pointer select-none ${
-        isCurrentTrack
+      className={`group relative flex items-center justify-between px-3 sm:px-4 py-3 rounded-lg transition-colors duration-150 cursor-pointer select-none ${isCurrentTrack
           ? 'bg-white/[0.07] text-white'
           : 'hover:bg-white/[0.04] text-[#A1A1A1]'
-      }`}
+        }`}
     >
       {/* Left: Index / Play Control + Artwork + Title & Artist */}
       <div className="flex items-center space-x-3.5 sm:space-x-4 min-w-0 pr-4">
@@ -99,25 +118,29 @@ export function TrackRow({ track, index, playlistContext }: TrackRowProps) {
         {/* Title & Artist Link */}
         <div className="min-w-0 truncate">
           <p
-            className={`text-sm truncate leading-tight transition-colors ${
-              isCurrentTrack ? 'text-white font-bold' : 'text-neutral-200 group-hover:text-white font-medium'
-            }`}
+            className={`text-sm truncate leading-tight transition-colors ${isCurrentTrack ? 'text-white font-bold' : 'text-neutral-200 group-hover:text-white font-medium'
+              }`}
           >
             {track.title}
           </p>
           <div className="flex items-center space-x-2 mt-1">
-            {/* Only link the artist name when the provider returned a real artist ID */}
-            {track.artistId ? (
+            {canLinkPrimary ? (
               <Link
                 href={`/artist/${encodeURIComponent(track.artistId)}`}
                 onClick={(e) => e.stopPropagation()}
                 aria-label={`Open ${track.artist} artist page (${track.title})`}
                 className="text-xs text-[#A1A1A1] truncate hover:text-white hover:underline transition-colors"
+                title={fullCreditTitle}
               >
-                {track.artist}
+                {displayLabel}
               </Link>
             ) : (
-              <span className="text-xs text-[#A1A1A1] truncate">{track.artist}</span>
+              <span
+                className="text-xs text-[#A1A1A1] truncate"
+                title={fullCreditTitle}
+              >
+                {displayLabel}
+              </span>
             )}
             {track.album && (
               <>

@@ -3,19 +3,32 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Play, Pause, AlertCircle, RefreshCw } from 'lucide-react';
 import { Song, Artist } from '@/types/music';
 import { ArtistCard } from '@/components/music/ArtistCard';
 import { deduplicateArtists } from '@/utils/artistDeduplication';
 import { usePlayerStore } from '@/store/usePlayerStore';
 import { getThumbnailArtwork } from '@/utils/artworkQuality';
+import { formatArtistLabel, formatArtistFullCredit, formatFreshnessRelative } from '@/utils/musicClassification';
 
-interface ChartsResponse {
+interface ChartTrack extends Song {
+  artistCredits?: string[];
+  isVariousArtists?: boolean;
+}
+
+interface InitialChartData {
   region: 'india' | 'global';
-  updatedAt?: string;
-  source?: string;
-  songs: Song[];
-  trendingArtists: Artist[];
+  updatedAt: string;
+  source: string;
+  songs: ChartTrack[];
+  artists: Artist[];
+}
+
+interface ChartsViewProps {
+  initialRegion?: 'india' | 'global';
+  initialGenre?: string | null;
+  initialData?: InitialChartData;
 }
 
 type Region = 'india' | 'global';
@@ -27,43 +40,75 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
-export function ChartsView() {
-  const [activeRegion, setActiveRegion] = useState<Region>('india');
-  const [cache, setCache] = useState<Partial<Record<Region, ChartsResponse>>>({});
+function formatDateTime(iso: string): string {
+  if (!iso) return '';
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '';
+  return new Date(t).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function ChartsView({
+  initialRegion = 'india',
+  initialGenre = null,
+  initialData,
+}: ChartsViewProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const regionParam = searchParams.get('region');
+  const [selectedRegion, setSelectedRegion] = useState<Region>(initialRegion);
+  const activeRegion: Region =
+    regionParam === 'india' || regionParam === 'global' ? regionParam : selectedRegion;
+
+  const [cache, setCache] = useState<Partial<Record<Region, InitialChartData>>>(() => {
+    return initialData ? { [initialRegion]: initialData } : {};
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { currentTrack, isPlaying, playbackStatus, playTrack, togglePlay } = usePlayerStore();
 
-  const fetchRegion = useCallback(async (region: Region, signal?: AbortSignal) => {
+  const fetchRegion = useCallback(async (region: Region) => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/charts?region=${region}`, { signal });
+      const res = await fetch(`/api/charts?region=${region}`);
       if (!res.ok) throw new Error('Charts request failed');
-      const data: ChartsResponse = await res.json();
-      setCache((prev) => ({ ...prev, [region]: data }));
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
+      const data = await res.json();
+      const next: InitialChartData = {
+        region: data.region ?? region,
+        updatedAt: data.updatedAt ?? new Date().toISOString(),
+        source: data.source ?? 'live',
+        songs: (data.songs || data.tracks || []) as ChartTrack[],
+        artists: (data.artists || data.trendingArtists || []) as Artist[],
+      };
+      setCache((prev) => ({ ...prev, [region]: next }));
+    } catch {
       setError('Unable to load live charts right now. Please try again shortly.');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // Only fetch when we don't have cached data for the active region.
   useEffect(() => {
     if (cache[activeRegion]) return;
-    const controller = new AbortController();
-    const timer = setTimeout(() => fetchRegion(activeRegion, controller.signal), 0);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
+    const timer = setTimeout(() => {
+      fetchRegion(activeRegion);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [activeRegion, cache, fetchRegion]);
 
   const currentData = cache[activeRegion];
   const songs = currentData?.songs || [];
-  const artists = deduplicateArtists(currentData?.trendingArtists || []);
+  const artists = deduplicateArtists(currentData?.artists || []);
 
   const handleTrackClick = (song: Song) => {
     if (currentTrack?.id === song.id) {
@@ -72,6 +117,21 @@ export function ChartsView() {
       playTrack(song, songs);
     }
   };
+
+  const handleRegionChange = useCallback((region: Region) => {
+    setSelectedRegion(region);
+    // Reflect in the URL without a full page reload so the canonical
+    // /charts URL is preserved and back/forward work.
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('region', region);
+    if (initialGenre) {
+      next.set('genre', initialGenre);
+    }
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+  }, [router, pathname, searchParams, initialGenre]);
+
+  const freshnessLabel = formatFreshnessRelative(currentData?.updatedAt);
+  const freshnessAbsolute = currentData?.updatedAt ? formatDateTime(currentData.updatedAt) : '';
 
   return (
     <div className="space-y-12 sm:space-y-16 pt-4 pb-12 max-w-6xl mx-auto select-none">
@@ -99,12 +159,11 @@ export function ChartsView() {
               <button
                 key={region}
                 type="button"
-                onClick={() => setActiveRegion(region)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${
-                  activeRegion === region
+                onClick={() => handleRegionChange(region)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all ${activeRegion === region
                     ? 'bg-white text-black'
                     : 'text-[#A1A1A6] hover:text-white bg-white/[0.04] hover:bg-white/[0.08]'
-                }`}
+                  }`}
                 aria-pressed={activeRegion === region}
               >
                 {region === 'india' ? 'Indian Hip-Hop' : 'Global Rap'}
@@ -113,8 +172,11 @@ export function ChartsView() {
           </div>
 
           {currentData?.updatedAt && (
-            <span className="text-[10px] font-mono text-[#636366] hidden sm:block uppercase tracking-wider">
-              Updated Live · {currentData.source || 'ytmusic'}
+            <span
+              className="text-[10px] font-mono text-[#636366] hidden sm:block uppercase tracking-wider"
+              title={freshnessAbsolute}
+            >
+              {freshnessLabel ? freshnessLabel : `Updated ${freshnessAbsolute}`}
             </span>
           )}
         </div>
@@ -138,7 +200,7 @@ export function ChartsView() {
         </div>
       )}
 
-      {/* Loading Skeleton */}
+      {/* Loading Skeleton (only when we have NO data for this region yet) */}
       {isLoading && !currentData && <ChartsSkeleton />}
 
       {/* Content: Ranked Songs */}
@@ -161,16 +223,27 @@ export function ChartsView() {
                   const isCurrentPlaying = isCurrent && isPlaying && playbackStatus === 'playing';
                   const rankNumber = String(idx + 1).padStart(2, '0');
                   const thumbnailSrc = getThumbnailArtwork(song.artworkUrl, 160) || 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop';
+                  const creditNames = (song.artistCredits && song.artistCredits.length > 0)
+                    ? song.artistCredits
+                    : (song.artist ? [song.artist] : []);
+                  const displayLabel = formatArtistLabel({
+                    artists: creditNames,
+                    primaryIsVarious: song.isVariousArtists,
+                  });
+                  const fullCredit = formatArtistFullCredit({
+                    artists: creditNames,
+                    primaryIsVarious: song.isVariousArtists,
+                  });
+                  const canLinkPrimary = Boolean(song.artistId) && !song.isVariousArtists;
 
                   return (
                     <div
                       key={song.id}
                       onClick={() => handleTrackClick(song)}
-                      className={`group flex items-center justify-between py-3.5 px-2 sm:px-3 rounded-md transition-colors cursor-pointer ${
-                        isCurrent
+                      className={`group flex items-center justify-between py-3.5 px-2 sm:px-3 rounded-md transition-colors cursor-pointer ${isCurrent
                           ? 'bg-white/[0.08] text-white'
                           : 'hover:bg-white/[0.04] text-[#A1A1A6]'
-                      }`}
+                        }`}
                     >
                       {/* Left: Rank, Play Button, Artwork, Title & Artist */}
                       <div className="flex items-center gap-4 sm:gap-6 min-w-0 pr-4">
@@ -205,16 +278,19 @@ export function ChartsView() {
                             {song.title}
                           </p>
                           <div className="flex items-center gap-2 mt-1 text-xs text-[#8F8F8F]">
-                            {song.artistId ? (
+                            {canLinkPrimary ? (
                               <Link
                                 href={`/artist/${encodeURIComponent(song.artistId)}`}
                                 onClick={(e) => e.stopPropagation()}
                                 className="hover:text-white hover:underline truncate"
+                                title={fullCredit}
                               >
-                                {song.artist}
+                                {displayLabel}
                               </Link>
                             ) : (
-                              <span className="truncate">{song.artist}</span>
+                              <span className="truncate" title={fullCredit}>
+                                {displayLabel}
+                              </span>
                             )}
                             {song.album && (
                               <>

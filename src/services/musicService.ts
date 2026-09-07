@@ -8,6 +8,10 @@ import {
   getDevGlobalAlbums,
 } from '@/data/fixtures';
 import { deduplicateArtists } from '@/utils/artistDeduplication';
+import {
+  dedupeAndClassifyGlobal,
+  dedupeAndClassifyIndian,
+} from '@/utils/marketFilter';
 
 export interface IMusicService {
   getHeroFeaturedTrack(): Promise<{ artist: Artist; song: Song } | null>;
@@ -49,32 +53,36 @@ class ProductionMusicService implements IMusicService {
   }
 
   async getFeaturedIndianArtists(): Promise<Artist[]> {
+    let rawArtists: Artist[] = [];
     if (typeof window === 'undefined') {
       try {
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        const rawArtists = await insforgeRepo.getArtists('india');
-        const artists = deduplicateArtists(rawArtists);
-        if (artists.length > 0) return artists;
+        rawArtists = await insforgeRepo.getArtists('india');
       } catch {
         // Fall through
       }
 
-      const { serverConfig } = await import('@/server/config');
-      if (serverConfig.useDevFixtures) {
-        return deduplicateArtists(getDevIndianArtists());
+      if (rawArtists.length === 0) {
+        const { serverConfig } = await import('@/server/config');
+        if (serverConfig.useDevFixtures) {
+          rawArtists = getDevIndianArtists();
+        }
       }
     } else {
       try {
         const res = await fetch('/api/artists?region=india');
         if (res.ok) {
-          const raw = await res.json();
-          return deduplicateArtists(raw);
+          rawArtists = await res.json();
         }
       } catch {
         // Fall through
       }
     }
-    return [];
+
+    // Re-classify by market so that artists whose stored region is
+    // ambiguous (or mistakenly set to "india") are correctly gated.
+    // Unknown-market artists are excluded from the curated Indian section.
+    return dedupeAndClassifyIndian(deduplicateArtists(rawArtists));
   }
 
   async getTrendingIndianTracks(): Promise<Song[]> {
@@ -118,32 +126,36 @@ class ProductionMusicService implements IMusicService {
   }
 
   async getFeaturedGlobalArtists(): Promise<Artist[]> {
+    let rawArtists: Artist[] = [];
     if (typeof window === 'undefined') {
       try {
         const { insforgeRepo } = await import('@/server/insforge/repository');
-        const rawArtists = await insforgeRepo.getArtists('global');
-        const artists = deduplicateArtists(rawArtists);
-        if (artists.length > 0) return artists;
+        rawArtists = await insforgeRepo.getArtists('global');
       } catch {
         // Fall through
       }
 
-      const { serverConfig } = await import('@/server/config');
-      if (serverConfig.useDevFixtures) {
-        return deduplicateArtists(getDevGlobalArtists());
+      if (rawArtists.length === 0) {
+        const { serverConfig } = await import('@/server/config');
+        if (serverConfig.useDevFixtures) {
+          rawArtists = getDevGlobalArtists();
+        }
       }
     } else {
       try {
         const res = await fetch('/api/artists?region=global');
         if (res.ok) {
-          const raw = await res.json();
-          return deduplicateArtists(raw);
+          rawArtists = await res.json();
         }
       } catch {
         // Fall through
       }
     }
-    return [];
+
+    // The Global section is conservative: include explicit GLOBAL artists
+    // and artists with UNKNOWN market (since we cannot prove they are
+    // Indian). Re-classify using the market utility to avoid drift.
+    return dedupeAndClassifyGlobal(deduplicateArtists(rawArtists));
   }
 
   async getTrendingGlobalTracks(): Promise<Song[]> {
@@ -311,4 +323,3 @@ class ProductionMusicService implements IMusicService {
 }
 
 export const musicService = new ProductionMusicService();
-
